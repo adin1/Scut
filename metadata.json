@@ -1,0 +1,12 @@
+{
+  "name": "Remix SCUT: Protecție Discretă",
+  "description": "Aplicație de camuflaj pentru victimele violenței domestice, oferind acces ascuns la servicii de urgență, suport juridic și stocare securizată.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
