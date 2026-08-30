@@ -182,7 +182,7 @@ export const CalculatorScreen: React.FC<CalculatorScreenProps> = ({
           <div className="grid grid-cols-2 gap-2 pt-0.5 text-[10px]">
             <div className="bg-stone-950 p-1.5 rounded border border-stone-800">
               <span className="text-emerald-400 font-bold block">PIN Real: 1234 =</span>
-              <span className="text-stone-400">Deschide Tabloul SCUT</span>
+              <span className="text-stone-400">Verificare Biometrică (FaceID/Amprentă) &rarr; SCUT</span>
             </div>
             <div className="bg-stone-950 p-1.5 rounded border border-stone-800">
               <span className="text-amber-400 font-bold block">PIN Constrângere: 0000 =</span>

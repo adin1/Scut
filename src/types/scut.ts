@@ -1,6 +1,7 @@
 export type AppMode = 
   | 'phone_home' 
   | 'calculator' 
+  | 'biometric_gate'
   | 'scut_home' 
   | 'sos_screen' 
   | 'evidence_vault' 
@@ -10,6 +11,18 @@ export type AppMode =
   | 'duress_weather' 
   | 'quick_exit_decoy'
   | 'case_dossier';
+
+export type BiometricMethod = 'face_id' | 'fingerprint';
+
+export interface BiometricConfig {
+  enabled: boolean;
+  preferredMethod: BiometricMethod;
+  livenessDetection: boolean;
+  autoScanOnTransition: boolean;
+  duressFingerprintEnabled: boolean;
+  hapticFeedback: boolean;
+  maxFailedAttempts: number;
+}
 
 export type TriageCategory = 'medical' | 'shelter' | 'legal' | 'psychological';
 
@@ -39,6 +52,9 @@ export interface ShelterLocation {
   county: string;
   phone: string;
   emergency24h: boolean;
+  hasPsychologicalSupport?: boolean;
+  schedule?: string;
+  services?: string[];
   coordinates: { lat: number; lng: number };
   capacityStatus?: 'available' | 'limited' | 'confidential';
   description: string;
@@ -51,6 +67,19 @@ export interface TrustedContact {
   phone: string;
   notifyOnSos: boolean;
   decoyCodeWord: string;
+  smsMode?: 'decoy' | 'direct' | 'custom';
+  customMessage?: string;
+  includeGpsLocation?: boolean;
+  includeBatteryStatus?: boolean;
+  lastDispatchedTimestamp?: number | null;
+}
+
+export interface EmergencySmsConfig {
+  autoSmsEnabled: boolean;
+  includeGpsCoordinates: boolean;
+  includeBatteryStatus: boolean;
+  customGlobalSosTemplate: string;
+  countdownSecondsBeforeSend: number;
 }
 
 export interface DisguisedNotification {

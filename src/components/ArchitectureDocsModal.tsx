@@ -90,12 +90,13 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
             </div>
 
             <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2">
-              <h3 className="text-sm font-bold text-slate-900">2. Mecanismul de Deblocare Secretă</h3>
+              <h3 className="text-sm font-bold text-slate-900">2. Mecanismul de Deblocare Secretă & Poarta Biometrică 2FA</h3>
               <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
                 <li>Utilizatoarea deschide aplicația <strong>Calculator</strong>.</li>
                 <li>Apare o interfață de calculator nativ complet funcțională, capabilă de calcule reale.</li>
                 <li><strong>Mecanism de activare:</strong> Se tastează PIN-ul secret de 4 cifre (ex: <code>1234</code>) urmat de tasta <strong>[=]</strong>.</li>
-                <li>Dacă codul este corect, calculatorul se estompează subtil și se deschide Tabloul de Comandă <strong>SCUT</strong>.</li>
+                <li><strong>Poarta Biometrică 2FA (FaceID / Amprentă):</strong> După introducerea PIN-ului, sistemul Secure Enclave solicită scanarea biometrică facială 3D sau amprenta pentru a garanta că doar proprietara reală poate accesa datele sensibile.</li>
+                <li>La confirmarea biometrică, se decriptează cheile AES-256 și se deschide Tabloul de Comandă <strong>SCUT</strong>.</li>
               </ol>
             </div>
           </div>
@@ -196,8 +197,11 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
             </div>
 
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-[11px] text-emerald-950">
-              <h3 className="text-sm font-bold text-emerald-950 mb-1">3. Criptare & Sandbox Izolat</h3>
+              <h3 className="text-sm font-bold text-emerald-950 mb-1">3. Criptare AES-256 GCM & Proces Vizual de Încuiere (Locking Engine)</h3>
               <p>
+                <strong>Proces Vizual de Încuiere (AES-256 Progress Bar):</strong> La încărcarea sau captarea oricărei probe (audio, foto, document sau notă), utilizatoarea vede în timp real etapele de izolare sandbox, derivarea cheilor PBKDF2 de 256-bit, executarea celor 14 runde de permutare AES-256-GCM și aplicarea sigiliului de integritate SHA-256 cu tag de autentificare GMAC 128-bit.
+              </p>
+              <p className="mt-1">
                 <strong>Zero Gallery Exposure:</strong> Imaginile capturate prin camera internă SCUT sunt stocate exclusiv în memoria sandbox a aplicației și nu apar niciodată în galeria telefonului sau în Google/Apple Photos.
               </p>
               <p className="mt-1">

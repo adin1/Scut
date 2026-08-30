@@ -11,11 +11,13 @@ import {
   Mic, 
   MicOff, 
   Radio, 
-  CheckCircle,
-  X,
-  Volume2
+  CheckCircle, 
+  X, 
+  Volume2,
+  ScanFace,
+  Fingerprint
 } from 'lucide-react';
-import { AppMode } from '../types/scut';
+import { AppMode, BiometricConfig } from '../types/scut';
 
 interface PhoneFrameProps {
   children: React.ReactNode;
@@ -33,6 +35,8 @@ interface PhoneFrameProps {
   silentSosActiveToast: { keyword: string; timestamp: number } | null;
   onDismissSilentToast: () => void;
   onOpenActiveSos: () => void;
+  biometricConfig: BiometricConfig;
+  onOpenBiometricSettings: () => void;
 }
 
 export const PhoneFrame: React.FC<PhoneFrameProps> = ({
@@ -50,7 +54,9 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
   audioLevel,
   silentSosActiveToast,
   onDismissSilentToast,
-  onOpenActiveSos
+  onOpenActiveSos,
+  biometricConfig,
+  onOpenBiometricSettings
 }) => {
   const [currentTime, setCurrentTime] = useState<string>('12:45');
   const [isWideView, setIsWideView] = useState<boolean>(false);
@@ -130,6 +136,27 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
               )}
             </div>
             <span className="font-mono">Voice SOS: {voiceTriggerEnabled ? `„${voicePrimaryKeyword}”` : 'Oprit'}</span>
+          </button>
+
+          {/* Biometric 2FA Gate Button */}
+          <button
+            id="btn-biometric-settings"
+            onClick={onOpenBiometricSettings}
+            title="Configurează scanarea biometrică 2FA (FaceID / Amprentă)"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+              biometricConfig.enabled
+                ? 'bg-teal-950/80 hover:bg-teal-900 text-teal-200 border-teal-600/60 shadow-xs'
+                : 'bg-stone-800 hover:bg-stone-700 text-stone-400 border-stone-700'
+            }`}
+          >
+            {biometricConfig.preferredMethod === 'face_id' ? (
+              <ScanFace className="w-3.5 h-3.5 text-teal-400" />
+            ) : (
+              <Fingerprint className="w-3.5 h-3.5 text-teal-400" />
+            )}
+            <span className="font-mono">
+              2FA: {biometricConfig.enabled ? (biometricConfig.preferredMethod === 'face_id' ? 'Face ID' : 'Touch ID') : 'Oprit'}
+            </span>
           </button>
 
           {/* Quick Voice Simulation Shortcut */}

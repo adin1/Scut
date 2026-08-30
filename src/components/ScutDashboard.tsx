@@ -11,19 +11,23 @@ import {
   Info,
   ChevronRight,
   Mic,
-  Sliders
+  Sliders,
+  ScanFace,
+  Fingerprint
 } from 'lucide-react';
-import { AppMode } from '../types/scut';
+import { AppMode, BiometricConfig } from '../types/scut';
 
 interface ScutDashboardProps {
   onNavigate: (mode: AppMode) => void;
   onQuickExit: () => void;
   onLockApp: () => void;
   onOpenVoiceSettings: () => void;
+  onOpenBiometricSettings: () => void;
   evidenceCount: number;
   contactsCount: number;
   voiceTriggerEnabled: boolean;
   voicePrimaryKeyword: string;
+  biometricConfig: BiometricConfig;
 }
 
 export const ScutDashboard: React.FC<ScutDashboardProps> = ({
@@ -31,10 +35,12 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
   onQuickExit,
   onLockApp,
   onOpenVoiceSettings,
+  onOpenBiometricSettings,
   evidenceCount,
   contactsCount,
   voiceTriggerEnabled,
-  voicePrimaryKeyword
+  voicePrimaryKeyword,
+  biometricConfig
 }) => {
   return (
     <div className="flex-1 w-full h-full bg-[#F4F4F4] text-[#222222] p-4 flex flex-col justify-between font-sans select-none overflow-y-auto">
@@ -77,22 +83,22 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
       </div>
 
       {/* Main Sanctuary Dashboard Body */}
-      <div className="my-auto py-3 space-y-3">
+      <div className="my-auto py-2.5 space-y-2.5">
         {/* 1. Primary Big SOS Button */}
         <div 
           onClick={() => onNavigate('sos_screen')}
-          className="w-full bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition transform active:scale-98 cursor-pointer flex items-center justify-between relative overflow-hidden group"
+          className="w-full bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white rounded-2xl p-3.5 shadow-lg hover:shadow-xl transition transform active:scale-98 cursor-pointer flex items-center justify-between relative overflow-hidden group"
         >
-          <div className="flex items-center gap-3.5 z-10">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition">
-              <AlertOctagon className="w-7 h-7 animate-pulse" />
+          <div className="flex items-center gap-3 z-10">
+            <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition">
+              <AlertOctagon className="w-6 h-6 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-wide uppercase">🔴 SOS Panică Rapidă</span>
-                <span className="bg-white/25 text-[10px] font-bold px-2 py-0.5 rounded-full">112</span>
+                <span className="text-sm font-extrabold tracking-wide uppercase">🔴 SOS Panică Rapidă</span>
+                <span className="bg-white/25 text-[9px] font-bold px-1.5 py-0.5 rounded-full">112</span>
               </div>
-              <p className="text-xs text-rose-100 mt-0.5">
+              <p className="text-[11px] text-rose-100 mt-0.5">
                 Apel direct 112, alertă silențioasă și transmitere GPS
               </p>
             </div>
@@ -100,34 +106,65 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
           <ChevronRight className="w-5 h-5 text-white/80 z-10" />
         </div>
 
-        {/* 2. Voice-Activated SOS Status Banner / Quick Settings */}
-        <div 
-          onClick={onOpenVoiceSettings}
-          className="w-full bg-slate-900 text-white rounded-2xl p-3 shadow-md border border-slate-800 flex items-center justify-between hover:bg-slate-850 transition active:scale-98 cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 ${
-              voiceTriggerEnabled ? 'bg-rose-600 shadow-sm animate-pulse' : 'bg-stone-700'
-            }`}>
-              <Mic className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold text-white">Declanșator Vocal SOS</h3>
-                <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
-                  voiceTriggerEnabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-stone-800 text-stone-400'
-                }`}>
-                  {voiceTriggerEnabled ? 'Activ în fundal' : 'Oprit'}
-                </span>
+        {/* 2. Dual Security Modules Row (Biometric 2FA + Voice Guardian) */}
+        <div className="grid grid-cols-2 gap-2">
+          
+          {/* Biometric Gate Status */}
+          <div 
+            onClick={onOpenBiometricSettings}
+            className="bg-slate-900 text-white rounded-2xl p-2.5 shadow-sm border border-slate-800 hover:border-teal-500/50 transition cursor-pointer flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white ${
+                biometricConfig.enabled ? 'bg-teal-600' : 'bg-slate-800 text-slate-400'
+              }`}>
+                {biometricConfig.preferredMethod === 'face_id' ? (
+                  <ScanFace className="w-4 h-4" />
+                ) : (
+                  <Fingerprint className="w-4 h-4" />
+                )}
               </div>
-              <p className="text-[10px] text-slate-300 mt-0.5">
-                Cuvânt declanșator: <strong className="text-teal-300 font-mono">„{voicePrimaryKeyword}”</strong> • Funcționează și din Calculator
+              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                biometricConfig.enabled ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' : 'bg-stone-800 text-stone-400'
+              }`}>
+                {biometricConfig.enabled ? '2FA Activ' : 'Oprit'}
+              </span>
+            </div>
+            <div className="mt-2">
+              <h3 className="text-[11px] font-bold text-white leading-tight">
+                {biometricConfig.preferredMethod === 'face_id' ? 'Face ID 3D' : 'Touch ID'}
+              </h3>
+              <p className="text-[9px] text-slate-400 mt-0.5">
+                {biometricConfig.enabled ? 'Poartă 2FA la intrare' : 'Configurare'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-slate-400 text-xs">
-            <Sliders className="w-4 h-4" />
+
+          {/* Voice Guardian Status */}
+          <div 
+            onClick={onOpenVoiceSettings}
+            className="bg-slate-900 text-white rounded-2xl p-2.5 shadow-sm border border-slate-800 hover:border-rose-500/50 transition cursor-pointer flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white ${
+                voiceTriggerEnabled ? 'bg-rose-600 animate-pulse' : 'bg-slate-800 text-slate-400'
+              }`}>
+                <Mic className="w-4 h-4" />
+              </div>
+              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                voiceTriggerEnabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-stone-800 text-stone-400'
+              }`}>
+                {voiceTriggerEnabled ? 'Activ' : 'Oprit'}
+              </span>
+            </div>
+            <div className="mt-2">
+              <h3 className="text-[11px] font-bold text-white leading-tight">Declanșator Vocal</h3>
+              <p className="text-[9px] text-teal-300 font-mono mt-0.5 truncate">
+                „{voicePrimaryKeyword}”
+              </p>
+            </div>
           </div>
+
         </div>
 
         {/* 3. Grid of Core Features */}

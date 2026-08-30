@@ -1,4 +1,14 @@
-import { EvidenceItem, ShelterLocation, TrustedContact, DisguisedNotification, CaseDossierSection, VoiceTriggerConfig, VoiceTriggerEvent } from '../types/scut';
+import { EvidenceItem, ShelterLocation, TrustedContact, DisguisedNotification, CaseDossierSection, VoiceTriggerConfig, VoiceTriggerEvent, BiometricConfig, EmergencySmsConfig } from '../types/scut';
+
+export const DEFAULT_BIOMETRIC_CONFIG: BiometricConfig = {
+  enabled: true,
+  preferredMethod: 'face_id',
+  livenessDetection: true,
+  autoScanOnTransition: true,
+  duressFingerprintEnabled: true,
+  hapticFeedback: true,
+  maxFailedAttempts: 3
+};
 
 export const DEFAULT_VOICE_CONFIG: VoiceTriggerConfig = {
   enabled: true,
@@ -108,9 +118,12 @@ export const SHELTERS_LIST: ShelterLocation[] = [
     county: 'București',
     phone: '0800.500.333',
     emergency24h: true,
+    hasPsychologicalSupport: true,
+    schedule: 'Non-Stop 24/7',
+    services: ['Cazare de urgență', 'Suport Psihologic Traumă', 'Pază armată 24/7', 'Asistență juridică'],
     coordinates: { lat: 44.4510, lng: 26.0790 },
     capacityStatus: 'available',
-    description: 'Cazare de urgență pentru mame și copii, consiliere psihologică, masă caldă, pază armată 24/7.'
+    description: 'Cazare de urgență pentru mame și copii, consiliere psihologică de criză, masă caldă, pază permanentă 24/7.'
   },
   {
     id: 'sh-002',
@@ -121,9 +134,12 @@ export const SHELTERS_LIST: ShelterLocation[] = [
     county: 'București',
     phone: '0743.088.880',
     emergency24h: true,
+    hasPsychologicalSupport: true,
+    schedule: 'Non-Stop 24/7',
+    services: ['Adăpost de criză', 'Psihoterapie de grup și individuală', 'Asistență avocat OPP', 'Linie de urgență'],
     coordinates: { lat: 44.4268, lng: 26.1025 },
     capacityStatus: 'available',
-    description: 'Adăpost confidențial, suport juridic specializat pentru emiterea Ordinului de Protecție.'
+    description: 'Adăpost confidențial, psihoterapie specializată pentru traume de violență domestică și suport juridic pentru emiterea Ordinului de Protecție.'
   },
   {
     id: 'sh-003',
@@ -134,6 +150,9 @@ export const SHELTERS_LIST: ShelterLocation[] = [
     county: 'București',
     phone: '112 / 021.314.1516',
     emergency24h: true,
+    hasPsychologicalSupport: false,
+    schedule: 'Non-Stop 24/7',
+    services: ['Ordin de Protecție Provizoriu (OPP)', 'Monitorizare Brățară Electronică', 'Intervenție de urgență 112'],
     coordinates: { lat: 44.4485, lng: 26.0890 },
     capacityStatus: 'available',
     description: 'Emitere imediată a Ordinului de Protecție Provizoriu (OPP) valabil 5 zile pe loc și monitorizare brățară electronică.'
@@ -147,12 +166,31 @@ export const SHELTERS_LIST: ShelterLocation[] = [
     county: 'București',
     phone: '021.332.1217',
     emergency24h: true,
+    hasPsychologicalSupport: false,
+    schedule: 'Non-Stop 24/7 (Urgențe Medico-Legale)',
+    services: ['Constatare leziuni fizice', 'Certificat medico-legal oficial', 'Recoltare probe biologice'],
     coordinates: { lat: 44.4012, lng: 26.1368 },
     capacityStatus: 'available',
-    description: 'Examinare medico-legală gratuită sau decontată, eliberare certificat constatator oficial pentru instanță.'
+    description: 'Examinare medico-legală gratuită sau decontată, eliberare certificat constatator oficial pentru dosarul penal și instanță.'
   },
   {
     id: 'sh-005',
+    name: 'Centrul de Consiliere Psihologică și Sprijin Emoțional „Sens”',
+    type: 'ngo',
+    address: 'Strada Academiei Nr. 17, Sector 1',
+    city: 'București',
+    county: 'București',
+    phone: '0722.345.678',
+    emergency24h: false,
+    hasPsychologicalSupport: true,
+    schedule: 'Luni - Vineri: 08:30 - 19:30',
+    services: ['Psihoterapie EMDR & Traumă', 'Consiliere copii martori', 'Grupuri de suport ghidate', 'Consiliere vocațională'],
+    coordinates: { lat: 44.4355, lng: 26.0998 },
+    capacityStatus: 'available',
+    description: 'Centru de zi specializat exclusiv pe psihoterapie clinică, managementul sindromului de stres post-traumatic (PTSD) și refacere emoțională.'
+  },
+  {
+    id: 'sh-006',
     name: 'Centrul Maternal de Urgență Cluj-Napoca (DGASPC Cluj)',
     type: 'shelter',
     address: 'Locație Securizată',
@@ -160,12 +198,15 @@ export const SHELTERS_LIST: ShelterLocation[] = [
     county: 'Cluj',
     phone: '0264.420.147',
     emergency24h: true,
+    hasPsychologicalSupport: true,
+    schedule: 'Non-Stop 24/7',
+    services: ['Găzduire securizată', 'Suport Psihologic Permanent', 'Asistență socială', 'Baroul Cluj Pro-Bono'],
     coordinates: { lat: 46.7712, lng: 23.6236 },
     capacityStatus: 'available',
-    description: 'Găzduire securizată, asistență socială, asistență juridică gratuită prin Baroul Cluj.'
+    description: 'Găzduire securizată, asistență psihologică permanentă pentru mame și minori, asistență juridică gratuită.'
   },
   {
-    id: 'sh-006',
+    id: 'sh-007',
     name: 'Centrul de Asistență pentru Victimele Violenței Timișoara',
     type: 'shelter',
     address: 'Adresă Protejată',
@@ -173,9 +214,28 @@ export const SHELTERS_LIST: ShelterLocation[] = [
     county: 'Timiș',
     phone: '0256.490.281',
     emergency24h: true,
+    hasPsychologicalSupport: true,
+    schedule: 'Non-Stop 24/7',
+    services: ['Servicii de criză 24/7', 'Consiliere psihologică', 'Sprijin reintegrare', 'Cazare sigură'],
     coordinates: { lat: 45.7537, lng: 21.2257 },
     capacityStatus: 'available',
-    description: 'Servicii de criză 24/7, sprijin reintegrare, consiliere juridică și psihologică.'
+    description: 'Servicii de criză 24/7, sprijin reintegrare, consiliere juridică și suport psihologic specializat.'
+  },
+  {
+    id: 'sh-008',
+    name: 'Cabinet Specializat Psihoterapie Familială & Traumă Iași',
+    type: 'ngo',
+    address: 'Bulevardul Carol I Nr. 12',
+    city: 'Iași',
+    county: 'Iași',
+    phone: '0232.267.890',
+    emergency24h: false,
+    hasPsychologicalSupport: true,
+    schedule: 'Luni - Sâmbătă: 09:00 - 18:00',
+    services: ['Psihoterapie individuală', 'Terapie desensibilizare traumă', 'Evaluare psihologică pentru instanță'],
+    coordinates: { lat: 47.1635, lng: 27.5830 },
+    capacityStatus: 'available',
+    description: 'Evaluare psihologică de specialitate, rapoarte de expertiză pentru instanță și terapie de recuperare după abuz.'
   }
 ];
 
@@ -186,7 +246,10 @@ export const DEFAULT_CONTACTS: TrustedContact[] = [
     relationship: 'Soră',
     phone: '+40 722 123 456',
     notifyOnSos: true,
-    decoyCodeWord: 'Cafeaua de dimineață a fost confirmată.'
+    smsMode: 'decoy',
+    decoyCodeWord: 'Cafeaua de dimineață a fost confirmată.',
+    includeGpsLocation: true,
+    includeBatteryStatus: true
   },
   {
     id: 'ct-002',
@@ -194,7 +257,10 @@ export const DEFAULT_CONTACTS: TrustedContact[] = [
     relationship: 'Prietenă',
     phone: '+40 744 987 654',
     notifyOnSos: true,
-    decoyCodeWord: 'Am uitat umbrela la birou.'
+    smsMode: 'decoy',
+    decoyCodeWord: 'Am uitat umbrela la birou.',
+    includeGpsLocation: true,
+    includeBatteryStatus: true
   },
   {
     id: 'ct-003',
@@ -202,9 +268,21 @@ export const DEFAULT_CONTACTS: TrustedContact[] = [
     relationship: 'Avocat Barou',
     phone: '+40 730 555 777',
     notifyOnSos: true,
-    decoyCodeWord: 'Documentele fiscale sunt pregătite.'
+    smsMode: 'direct',
+    decoyCodeWord: 'Documentele fiscale sunt pregătite.',
+    customMessage: 'ALERTA SCUT: Sunt într-o situație de criză iminentă. Transmit poziția mea pentru asistență juridică și sesizare.',
+    includeGpsLocation: true,
+    includeBatteryStatus: true
   }
 ];
+
+export const DEFAULT_EMERGENCY_SMS_CONFIG: EmergencySmsConfig = {
+  autoSmsEnabled: true,
+  includeGpsCoordinates: true,
+  includeBatteryStatus: true,
+  customGlobalSosTemplate: '🚨 ALERTĂ SCUT SOS: Am nevoie de sprijin de urgență! Poziție GPS: https://maps.google.com/?q=44.4378,26.0946 (Baterie: 84%)',
+  countdownSecondsBeforeSend: 3
+};
 
 export const DISGUISED_NOTIFICATIONS_CATALOG: DisguisedNotification[] = [
   {

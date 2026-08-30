@@ -10,20 +10,25 @@ import {
   TrustedContact, 
   DisguisedNotification,
   VoiceTriggerConfig,
-  VoiceTriggerEvent
+  VoiceTriggerEvent,
+  BiometricConfig,
+  EmergencySmsConfig
 } from './types/scut';
 import { 
   INITIAL_EVIDENCE, 
   DEFAULT_CONTACTS, 
   DISGUISED_NOTIFICATIONS_CATALOG,
   DEFAULT_VOICE_CONFIG,
-  INITIAL_VOICE_EVENTS 
+  INITIAL_VOICE_EVENTS,
+  DEFAULT_BIOMETRIC_CONFIG,
+  DEFAULT_EMERGENCY_SMS_CONFIG
 } from './data/mockData';
 import { generateSha256Hash } from './utils/security';
 import { useVoiceGuardian } from './hooks/useVoiceGuardian';
 import { PhoneFrame } from './components/PhoneFrame';
 import { HomeScreen } from './components/HomeScreen';
 import { CalculatorScreen } from './components/CalculatorScreen';
+import { BiometricAuthScreen } from './components/BiometricAuthScreen';
 import { WeatherDuressScreen } from './components/WeatherDuressScreen';
 import { ScutDashboard } from './components/ScutDashboard';
 import { SosAlertScreen } from './components/SosAlertScreen';
@@ -36,6 +41,7 @@ import { QuickExitDecoy } from './components/QuickExitDecoy';
 import { ArchitectureDocsModal } from './components/ArchitectureDocsModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { VoiceTriggerModal } from './components/VoiceTriggerModal';
+import { BiometricSettingsModal } from './components/BiometricSettingsModal';
 
 export default function App() {
   // App navigation state
@@ -46,6 +52,12 @@ export default function App() {
   const [contacts, setContacts] = useState<TrustedContact[]>(DEFAULT_CONTACTS);
   const [notifications, setNotifications] = useState<DisguisedNotification[]>(DISGUISED_NOTIFICATIONS_CATALOG);
   
+  // Biometric Security Gate state
+  const [biometricConfig, setBiometricConfig] = useState<BiometricConfig>(DEFAULT_BIOMETRIC_CONFIG);
+
+  // Emergency SMS Dispatch Config state
+  const [emergencySmsConfig, setEmergencySmsConfig] = useState<EmergencySmsConfig>(DEFAULT_EMERGENCY_SMS_CONFIG);
+
   // Voice Guardian state
   const [voiceConfig, setVoiceConfig] = useState<VoiceTriggerConfig>(DEFAULT_VOICE_CONFIG);
   const [voiceEvents, setVoiceEvents] = useState<VoiceTriggerEvent[]>(INITIAL_VOICE_EVENTS);
@@ -56,6 +68,7 @@ export default function App() {
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState<boolean>(false);
+  const [isBiometricSettingsOpen, setIsBiometricSettingsOpen] = useState<boolean>(false);
 
   // Voice SOS Trigger Handler
   const handleVoiceSOS = useCallback((keyword: string, transcript: string, isSilent: boolean) => {
@@ -148,6 +161,10 @@ export default function App() {
     setContacts(prev => [...prev, contact]);
   };
 
+  const handleUpdateContact = (updated: TrustedContact) => {
+    setContacts(prev => prev.map(c => c.id === updated.id ? updated : c));
+  };
+
   const handleDeleteContact = (id: string) => {
     setContacts(prev => prev.filter(c => c.id !== id));
   };
@@ -182,6 +199,8 @@ export default function App() {
           setVoiceTriggeredKeyword(voiceConfig.primaryKeyword);
           setCurrentMode('sos_screen');
         }}
+        biometricConfig={biometricConfig}
+        onOpenBiometricSettings={() => setIsBiometricSettingsOpen(true)}
       >
         {/* 1. Smartphone Home Launcher */}
         {currentMode === 'phone_home' && (
@@ -195,9 +214,26 @@ export default function App() {
         {/* 2. Disguised Calculator Screen (Phase 1) */}
         {currentMode === 'calculator' && (
           <CalculatorScreen
-            onUnlockSuccess={() => setCurrentMode('scut_home')}
+            onUnlockSuccess={() => {
+              if (biometricConfig.enabled) {
+                setCurrentMode('biometric_gate');
+              } else {
+                setCurrentMode('scut_home');
+              }
+            }}
             onDuressTrigger={() => setCurrentMode('duress_weather')}
             onReturnHome={() => setCurrentMode('phone_home')}
+          />
+        )}
+
+        {/* 2.5 Biometric Security Gate (FaceID / TouchID 2FA) */}
+        {currentMode === 'biometric_gate' && (
+          <BiometricAuthScreen
+            config={biometricConfig}
+            onSuccess={() => setCurrentMode('scut_home')}
+            onDuressTrigger={() => setCurrentMode('duress_weather')}
+            onCancel={() => setCurrentMode('calculator')}
+            onQuickExit={handleQuickExit}
           />
         )}
 
@@ -216,10 +252,12 @@ export default function App() {
             onQuickExit={handleQuickExit}
             onLockApp={() => setCurrentMode('calculator')}
             onOpenVoiceSettings={() => setIsVoiceModalOpen(true)}
+            onOpenBiometricSettings={() => setIsBiometricSettingsOpen(true)}
             evidenceCount={evidenceList.length}
             contactsCount={contacts.length}
             voiceTriggerEnabled={voiceConfig.enabled}
             voicePrimaryKeyword={voiceConfig.primaryKeyword}
+            biometricConfig={biometricConfig}
           />
         )}
 
@@ -232,6 +270,8 @@ export default function App() {
             }}
             onQuickExit={handleQuickExit}
             voiceTriggeredKeyword={voiceTriggeredKeyword}
+            contacts={contacts}
+            emergencySmsConfig={emergencySmsConfig}
           />
         )}
 
@@ -267,7 +307,10 @@ export default function App() {
           <TrustedContactsScreen
             contacts={contacts}
             onAddContact={handleAddContact}
+            onUpdateContact={handleUpdateContact}
             onDeleteContact={handleDeleteContact}
+            emergencySmsConfig={emergencySmsConfig}
+            onUpdateEmergencySmsConfig={setEmergencySmsConfig}
             onBack={() => setCurrentMode('scut_home')}
             onQuickExit={handleQuickExit}
           />
@@ -310,6 +353,18 @@ export default function App() {
       <ArchitectureDocsModal
         isOpen={isDocsOpen}
         onClose={() => setIsDocsOpen(false)}
+      />
+
+      {/* Biometric 2FA Configuration Modal */}
+      <BiometricSettingsModal
+        isOpen={isBiometricSettingsOpen}
+        onClose={() => setIsBiometricSettingsOpen(false)}
+        config={biometricConfig}
+        onUpdateConfig={(newConfig) => setBiometricConfig(newConfig)}
+        onLaunchTestGate={() => {
+          setIsBiometricSettingsOpen(false);
+          setCurrentMode('biometric_gate');
+        }}
       />
 
       {/* Disguised Notifications Testing Lab */}
