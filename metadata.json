@@ -1,6 +1,6 @@
 {
-  "name": "Remix SCUT: Protecție Discretă",
-  "description": "Aplicație de camuflaj pentru victimele violenței domestice, oferind acces ascuns la servicii de urgență, suport juridic și stocare securizată.",
+  "name": "SCUT - Infrastructură Digitală Interinstituțională",
+  "description": "SCUT – infrastructura digitală pentru protecția victimei, conservarea probelor și managementul interinstituțional al cazurilor de violență domestică.",
   "requestFramePermissions": [
     "camera",
     "microphone",

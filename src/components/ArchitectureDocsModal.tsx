@@ -39,12 +39,14 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
               <p className="text-xs text-slate-500">Documentație Principală de Securitate Cibernetică și Design Sigur</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-stone-100 text-stone-500"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-full hover:bg-stone-100 text-stone-500 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Phase Tabs */}
@@ -248,12 +250,14 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
           </div>
         )}
 
-        <button
-          onClick={onClose}
-          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow"
-        >
-          Închide Panoul de Specificații
-        </button>
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={onClose}
+            className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow cursor-pointer transition"
+          >
+            Închide
+          </button>
+        </div>
       </div>
     </div>
   );

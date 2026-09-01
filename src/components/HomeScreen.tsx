@@ -134,15 +134,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       </div>
 
-      {/* Camouflage Instruction Pill */}
-      <div className="w-full bg-blue-950/80 border border-blue-800/80 rounded-xl p-2.5 text-center text-xs text-blue-200 z-10">
-        <p className="font-semibold text-white flex items-center justify-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-          <span>Faza 1: Masca pe ecranul principal</span>
-        </p>
-        <p className="text-[11px] text-blue-300/90 mt-0.5">
-          Apasă pe iconița <strong>Calculator</strong> pentru a testa funcționalitatea de deghizare.
-        </p>
+      {/* Camouflage Instruction */}
+      <div className="w-full bg-blue-950/80 border border-blue-800/80 rounded-xl p-2.5 text-center text-xs text-blue-200 z-10 space-y-1.5">
+        <div>
+          <p className="font-semibold text-white flex items-center justify-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+            <span>Faza 1: Masca pe ecranul principal</span>
+          </p>
+          <p className="text-[11px] text-blue-300/90 mt-0.5">
+            Apasă pe iconița <strong>Calculator</strong> pentru a testa funcționalitatea de deghizare (PIN: 1312).
+          </p>
+        </div>
       </div>
 
       {/* Bottom Dock */}

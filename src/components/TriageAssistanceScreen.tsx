@@ -239,6 +239,14 @@ export const TriageAssistanceScreen: React.FC<TriageAssistanceScreenProps> = ({
         </button>
       </div>
 
+      {/* Assistive AI Human Verification Disclaimer Badge */}
+      <div className="mt-1 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1 text-[10px] text-amber-900 flex items-center justify-between">
+        <span className="flex items-center gap-1.5 font-medium">
+          <Sparkles className="w-3 h-3 text-amber-600 shrink-0" />
+          <span><strong>Asistent Sprijin Decizional:</strong> Conținut generat automat – necesită verificare umană de către specialiști autorizați.</span>
+        </span>
+      </div>
+
       {/* Mode Navigation Tabs */}
       <div className="grid grid-cols-4 gap-1 pt-2 pb-1 text-[11px] font-bold">
         <button

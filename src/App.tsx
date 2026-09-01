@@ -37,6 +37,11 @@ import { TriageAssistanceScreen } from './components/TriageAssistanceScreen';
 import { SheltersMapScreen } from './components/SheltersMapScreen';
 import { TrustedContactsScreen } from './components/TrustedContactsScreen';
 import { CaseDossierScreen } from './components/CaseDossierScreen';
+import { SafetyCheckScreen } from './components/SafetyCheckScreen';
+import { SafetyPlanScreen } from './components/SafetyPlanScreen';
+import { ConsentManagerScreen } from './components/ConsentManagerScreen';
+import { CourtExportScreen } from './components/CourtExportScreen';
+import { SpecialistDashboardScreen } from './components/SpecialistDashboardScreen';
 import { QuickExitDecoy } from './components/QuickExitDecoy';
 import { ArchitectureDocsModal } from './components/ArchitectureDocsModal';
 import { NotificationsModal } from './components/NotificationsModal';
@@ -316,7 +321,7 @@ export default function App() {
           />
         )}
 
-        {/* 10. Single Electronic Case File (Phase 3) */}
+        {/* 10. Single Electronic Case File */}
         {currentMode === 'case_dossier' && (
           <CaseDossierScreen
             onBack={() => setCurrentMode('scut_home')}
@@ -324,7 +329,49 @@ export default function App() {
           />
         )}
 
-        {/* 11. Quick Exit Decoy Screen (Google / News) */}
+        {/* 11. Safety Check (Device Security Audit & Anti-Spyware) */}
+        {currentMode === 'safety_check' && (
+          <SafetyCheckScreen
+            onBack={() => setCurrentMode('scut_home')}
+            onQuickExit={handleQuickExit}
+          />
+        )}
+
+        {/* 12. Safety Plan (Offline Checklists, Emergency Bag & Codewords) */}
+        {currentMode === 'safety_plan' && (
+          <SafetyPlanScreen
+            onBack={() => setCurrentMode('scut_home')}
+            onQuickExit={handleQuickExit}
+          />
+        )}
+
+        {/* 13. Consent Manager & Break-Glass Audit */}
+        {currentMode === 'consent_manager' && (
+          <ConsentManagerScreen
+            onBack={() => setCurrentMode('scut_home')}
+            onQuickExit={handleQuickExit}
+          />
+        )}
+
+        {/* 14. Court Export (Judicial Packets PDF/A & ZIP) */}
+        {currentMode === 'court_export' && (
+          <CourtExportScreen
+            onBack={() => setCurrentMode('scut_home')}
+            onQuickExit={handleQuickExit}
+            evidenceList={evidenceList}
+          />
+        )}
+
+        {/* 15. Specialist Dashboard (Multi-Institutional Workspaces) */}
+        {currentMode === 'specialist_dashboard' && (
+          <SpecialistDashboardScreen
+            onBack={() => setCurrentMode('scut_home')}
+            onQuickExit={handleQuickExit}
+            onNavigateToCourtExport={() => setCurrentMode('court_export')}
+          />
+        )}
+
+        {/* 16. Quick Exit Decoy Screen (Google / News) */}
         {currentMode === 'quick_exit_decoy' && (
           <QuickExitDecoy
             onReturnToCalculator={() => setCurrentMode('calculator')}

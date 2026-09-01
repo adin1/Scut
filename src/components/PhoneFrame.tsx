@@ -207,10 +207,10 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
           <button
             id="btn-open-spec-docs"
             onClick={onOpenDocs}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-lg shadow transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-lg border border-stone-700 transition cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Specificații (Faze 1-4)</span>
+            <FileText className="w-3.5 h-3.5 text-stone-400" />
+            <span>Specificații Tehnice</span>
           </button>
 
           {/* Layout Toggle */}

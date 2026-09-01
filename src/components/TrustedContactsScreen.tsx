@@ -175,7 +175,9 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
         decoyCodeWord,
         customMessage,
         includeGpsLocation,
-        includeBatteryStatus
+        includeBatteryStatus,
+        receiveSosAlert: notifyOnSos,
+        receiveLocationAlert: includeGpsLocation
       };
       onAddContact(newContact);
     }

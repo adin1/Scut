@@ -240,7 +240,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
             <div className="flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
               <div className="leading-tight">
-                <span className="font-bold">Sandbox Izolat AES-256:</span> Imaginile și sunetele nu sunt expuse în galeria telefonului sau fișierele publice. Fiecare probă are amprentă SHA-256 admisibilă în instanță.
+                <span className="font-bold">Lanț Digital de Custodie (SHA-256):</span> Probe digitale conservate într-un format conceput pentru verificarea autenticității, integrității, originii și momentului colectării.
               </div>
             </div>
           </div>
@@ -343,15 +343,20 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 </p>
 
                 <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px]">
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded ${
+                      item.originalVsDerived === 'derived' ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-sky-100 text-sky-900 border border-sky-200'
+                    }`}>
+                      {item.originalVsDerived === 'derived' ? 'DERIVAT' : 'ORIGINAL'}
+                    </span>
                     {item.tags.map((tag, i) => (
                       <span key={i} className="bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded text-[9px]">
                         #{tag}
                       </span>
                     ))}
                   </div>
-                  <span className="text-[9px] font-mono text-slate-400">
-                    {item.sha256Hash.substring(0, 10)}...
+                  <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                    ✓ SHA-256: {item.sha256Hash.substring(0, 8)}...
                   </span>
                 </div>
               </div>
