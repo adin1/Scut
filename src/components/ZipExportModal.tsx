@@ -46,6 +46,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
   const [exportProgress, setExportProgress] = useState(0);
   const [exportStepText, setExportStepText] = useState('');
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState('');
   const [generatedFileName, setGeneratedFileName] = useState('');
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [copiedSummary, setCopiedSummary] = useState(false);
@@ -79,12 +80,13 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
   };
 
   const handleExportZip = async () => {
+    setExportError('');
     if (!password || password.length < 6) {
-      alert('Vă rugăm să introduceți o parolă de securitate de minimum 6 caractere pentru protejarea arhivei.');
+      setExportError('Introduceți o parolă de securitate de minimum 6 caractere pentru protejarea arhivei.');
       return;
     }
     if (password !== confirmPassword) {
-      alert('Parolele introduse nu coincid. Vă rugăm să le verificați.');
+      setExportError('Parolele introduse nu coincid. Verificați-le și încercați din nou.');
       return;
     }
 
@@ -244,7 +246,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       setIsExporting(false);
     } catch (err) {
       console.error('Error generating zip:', err);
-      alert('A apărut o eroare la împachetarea arhivei ZIP. Vă rugăm să încercați din nou.');
+      setExportError('A apărut o eroare la împachetarea arhivei ZIP. Vă rugăm să încercați din nou.');
       setIsExporting(false);
     }
   };
@@ -367,7 +369,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => { setPassword(e.target.value); setExportError(''); }}
                   placeholder="Introduceți parola de deschidere ZIP"
                   className="w-full pl-2.5 pr-8 py-1.5 rounded-xl border border-stone-300 text-xs font-mono outline-none focus:ring-2 focus:ring-amber-500"
                 />
@@ -384,7 +386,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
+                onChange={e => { setConfirmPassword(e.target.value); setExportError(''); }}
                 placeholder="Confirmare parolă ZIP"
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs font-mono outline-none focus:ring-2 focus:ring-amber-500"
               />
@@ -442,6 +444,14 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
                     style={{ width: `${exportProgress}%` }}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Inline Error Banner */}
+            {exportError && (
+              <div role="alert" className="flex items-start gap-1.5 bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-medium px-2.5 py-2 rounded-xl">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{exportError}</span>
               </div>
             )}
 

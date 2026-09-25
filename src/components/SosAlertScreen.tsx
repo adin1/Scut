@@ -1,22 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PhoneCall, 
-  Radio, 
-  MapPin, 
-  ShieldAlert, 
-  Clock, 
-  CheckCircle2, 
-  ArrowLeft, 
-  X, 
-  Mic, 
+import {
+  PhoneCall,
+  Radio,
+  MapPin,
+  ShieldAlert,
+  Clock,
+  CheckCircle2,
+  ArrowLeft,
+  X,
+  Mic,
   AlertTriangle,
   Volume2,
   MessageSquare,
   Send,
   Sparkles,
-  Smartphone
+  Smartphone,
+  LocateFixed
 } from 'lucide-react';
 import { TrustedContact, EmergencySmsConfig } from '../types/scut';
+import { CLUJ_RESOURCE_PROVIDERS } from '../data/cluj';
+import { distanceMeters } from '../utils/security';
+
+const NEAREST_KNOWN_POLICE = CLUJ_RESOURCE_PROVIDERS.find(r => r.id === 'cj-ipj-cluj')!;
+
+function buildSosSmsBody(contact: TrustedContact, coords: { lat: number; lng: number } | null): string {
+  if (contact.smsMode === 'direct') {
+    let text = contact.customMessage || '🚨 ALERTA SCUT SOS: Am nevoie de sprijin de urgență!';
+    if (contact.includeGpsLocation && coords) {
+      text += ` Locație: https://maps.google.com/?q=${coords.lat},${coords.lng}`;
+    }
+    return text;
+  }
+  let text = contact.decoyCodeWord || 'Pachetul de la curier a sosit.';
+  if (contact.includeGpsLocation && coords) {
+    text += ` [Ref: ${coords.lat.toFixed(4)},${coords.lng.toFixed(4)}]`;
+  }
+  return text;
+}
 
 interface SosAlertScreenProps {
   onBack: () => void;
@@ -37,30 +57,40 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
   const [silentAlertSent, setSilentAlertSent] = useState<boolean>(false);
   const [audioRecording, setAudioRecording] = useState<boolean>(Boolean(voiceTriggeredKeyword));
   const [callModalOpen, setCallModalOpen] = useState<boolean>(false);
-  const [simulatedCalling, setSimulatedCalling] = useState<boolean>(false);
-  const [etaMinutes, setEtaMinutes] = useState<number>(3);
-  const [smsDispatchedContacts, setSmsDispatchedContacts] = useState<TrustedContact[]>([]);
+  const [callInitiated, setCallInitiated] = useState<boolean>(false);
+  const [sentSmsContactIds, setSentSmsContactIds] = useState<string[]>([]);
+
+  // Real device GPS — no more hardcoded coordinates. Requests permission once an
+  // alert is active, since that's the moment the location actually matters.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'granted' | 'denied' | 'unsupported'>('idle');
 
   const isAutoSmsEnabled = emergencySmsConfig ? emergencySmsConfig.autoSmsEnabled : true;
   const enabledContacts = contacts.filter(c => c.notifyOnSos);
+  const isAlertActivePreGeo = sosSent || silentAlertSent || Boolean(voiceTriggeredKeyword);
 
   useEffect(() => {
-    if (voiceTriggeredKeyword || sosSent || silentAlertSent) {
-      if (isAutoSmsEnabled) {
-        setSmsDispatchedContacts(enabledContacts);
-      }
+    if (!isAlertActivePreGeo || geoStatus !== 'idle') return;
+    if (!('geolocation' in navigator)) {
+      setGeoStatus('unsupported');
+      return;
     }
-  }, [voiceTriggeredKeyword, sosSent, silentAlertSent, isAutoSmsEnabled, enabledContacts]);
+    setGeoStatus('locating');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setAccuracyMeters(Math.round(pos.coords.accuracy));
+        setGeoStatus('granted');
+      },
+      () => setGeoStatus('denied'),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, [isAlertActivePreGeo, geoStatus]);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if ((sosSent || silentAlertSent) && etaMinutes > 1) {
-      timer = setInterval(() => {
-        setEtaMinutes(prev => (prev > 1 ? prev - 1 : 1));
-      }, 45000);
-    }
-    return () => clearInterval(timer);
-  }, [sosSent, silentAlertSent, etaMinutes]);
+  const distanceToNearestKnownStation = coords
+    ? Math.round(distanceMeters(coords, NEAREST_KNOWN_POLICE.coordinates))
+    : null;
 
   const handleTriggerSos = () => {
     setSosSent(true);
@@ -74,8 +104,19 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
 
   const handleStart112Call = () => {
     setCallModalOpen(false);
-    setSimulatedCalling(true);
+    setCallInitiated(true);
     setSosSent(true);
+    // Opens the device's native phone dialer with 112 pre-filled. On a phone the
+    // user still taps "call" themselves — browsers cannot place a call silently.
+    window.location.href = 'tel:112';
+  };
+
+  const handleSendSmsToContact = (contact: TrustedContact) => {
+    const body = encodeURIComponent(buildSosSmsBody(contact, coords));
+    // Opens the native SMS app pre-filled with the recipient + message; the user
+    // still has to tap send there — no backend SMS gateway exists to do this silently.
+    window.location.href = `sms:${contact.phone.replace(/\s+/g, '')}?body=${body}`;
+    setSentSmsContactIds(prev => (prev.includes(contact.id) ? prev : [...prev, contact.id]));
   };
 
   const isAlertActive = sosSent || silentAlertSent || Boolean(voiceTriggeredKeyword);
@@ -131,25 +172,42 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
               </div>
             </div>
             <div className="mt-1 px-2 py-0.5 bg-slate-900/90 text-white text-[9px] font-bold rounded-full shadow backdrop-blur whitespace-nowrap">
-              Locația Ta Curentă (±3m)
+              {accuracyMeters !== null ? `Locația Ta Curentă (±${accuracyMeters}m)` : 'Locația Ta Curentă'}
             </div>
           </div>
 
           {/* Top Map GPS Overlay Info */}
           <div className="flex items-center justify-between z-10">
             <span className="text-[9px] font-mono bg-white/90 px-2 py-0.5 rounded border border-slate-300 font-semibold text-slate-800 shadow-xs">
-              GPS: 44.4378° N, 26.0946° E
+              {coords ? `GPS: ${coords.lat.toFixed(4)}° N, ${coords.lng.toFixed(4)}° E` : 'GPS: în curs de localizare...'}
             </span>
-            <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-semibold shadow-xs flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-              Live Geolocation
-            </span>
+            {geoStatus === 'granted' ? (
+              <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-semibold shadow-xs flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                Locație Reală Activă
+              </span>
+            ) : geoStatus === 'denied' ? (
+              <span className="text-[9px] bg-rose-700 text-white px-2 py-0.5 rounded-full font-semibold shadow-xs">
+                Locație Refuzată — activeaz-o din setările browserului
+              </span>
+            ) : geoStatus === 'unsupported' ? (
+              <span className="text-[9px] bg-amber-600 text-white px-2 py-0.5 rounded-full font-semibold shadow-xs">
+                Locație Indisponibilă pe Acest Dispozitiv
+              </span>
+            ) : (
+              <span className="text-[9px] bg-slate-600 text-white px-2 py-0.5 rounded-full font-semibold shadow-xs flex items-center gap-1">
+                <LocateFixed className="w-2.5 h-2.5 animate-pulse" />
+                Se localizează...
+              </span>
+            )}
           </div>
 
-          {/* Nearest Police / Emergency distance badge */}
+          {/* Nearest Verified Police Station distance badge */}
           <div className="z-10 self-start">
             <span className="text-[9px] bg-slate-900/85 text-slate-100 px-2 py-0.5 rounded shadow-xs">
-              Secția 1 Poliție: <strong>850 metri</strong> distanță
+              {distanceToNearestKnownStation !== null
+                ? <>{NEAREST_KNOWN_POLICE.name}: <strong>{(distanceToNearestKnownStation / 1000).toFixed(1)} km</strong> distanță (linie dreaptă)</>
+                : `Cea mai apropiată secție verificată: ${NEAREST_KNOWN_POLICE.name} — activează locația pentru distanță`}
             </span>
           </div>
         </div>
@@ -170,57 +228,57 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
                 </span>
               </div>
             </div>
-            <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
-              AUTO-DISPATCH
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-bold">
+              APASĂ SUNĂ 112
             </span>
           </div>
         )}
 
-        {/* SOS Sent Status Feedback Banner */}
+        {/* SOS Active Status Banner — honest: the app cannot confirm dispatch itself */}
         {isAlertActive && (
           <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-3 text-emerald-950 shadow-xs animate-fade-in space-y-2">
             <div className="flex items-center gap-2 font-bold text-emerald-900 text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Alerta SOS Trimisă. Echipele sunt pe drum.</span>
+              <span>Protocol SOS activat pe acest dispozitiv.</span>
             </div>
             <p className="text-[11px] text-emerald-800 leading-snug">
-              Dispeceratul 112 a recepționat poziția ta și dosarul preliminar. Rămâi pe loc dacă ești într-un spațiu sigur.
+              {callInitiated
+                ? 'Apelul către 112 a fost inițiat. Rămâi la telefon cu operatorul și confirmă verbal adresa/poziția ta — aplicația nu poate garanta că dispeceratul a primit locația automat.'
+                : 'Apasă „SUNĂ 112” mai jos pentru a iniția apelul real către dispecerat, sau folosește butoanele SMS de mai jos pentru a alerta contactele de încredere.'}
             </p>
-            <div className="pt-1.5 border-t border-emerald-200 flex items-center justify-between text-[10px]">
-              <span className="font-semibold text-emerald-900 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                Timp estimat sosire (ETA): <strong>~{etaMinutes} minute</strong>
-              </span>
-              <span className="text-[9px] font-mono text-emerald-700">Cod: #SOS-112-RO</span>
-            </div>
           </div>
         )}
 
-        {/* Automated Emergency SMS to Trusted Contacts Feedback */}
+        {/* Emergency SMS to Trusted Contacts — real sms: links, honest about what "sent" means */}
         {isAlertActive && isAutoSmsEnabled && enabledContacts.length > 0 && (
           <div className="bg-amber-50 border border-amber-300 rounded-2xl p-2.5 text-amber-950 shadow-xs space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
-              <span className="flex items-center gap-1.5">
-                <Send className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
-                <span>SMS de Urgență Expediat Automat ({enabledContacts.length} contacte):</span>
-              </span>
-              <span className="text-[9px] font-mono bg-emerald-600 text-white px-1.5 py-0.5 rounded font-semibold">
-                LIVRAT GSM
-              </span>
+            <div className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-amber-700" />
+              <span>Alertează contactele de încredere ({enabledContacts.length}):</span>
             </div>
+            <p className="text-[10px] text-amber-800 leading-snug">
+              Apasă pe un contact pentru a deschide aplicația de mesaje cu textul pre-completat — trebuie să apeși tu „Trimite” acolo.
+            </p>
 
             <div className="space-y-1 pt-0.5">
-              {enabledContacts.map(c => (
-                <div key={c.id} className="bg-white/80 border border-amber-200 rounded-xl p-1.5 flex items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="font-bold text-slate-900 truncate">{c.name}</span>
-                    <span className="text-slate-500 font-mono text-[9px]">({c.phone})</span>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold shrink-0 bg-amber-100 text-amber-900">
-                    {c.smsMode === 'direct' ? '🚨 Alertă Directă' : `🕵️ Decoy: „${c.decoyCodeWord.slice(0, 14)}...”`}
-                  </span>
-                </div>
-              ))}
+              {enabledContacts.map(c => {
+                const wasSent = sentSmsContactIds.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => handleSendSmsToContact(c)}
+                    className="w-full bg-white/80 hover:bg-white border border-amber-200 rounded-xl p-1.5 flex items-center justify-between text-[10px] transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-slate-900 truncate">{c.name}</span>
+                      <span className="text-slate-500 font-mono text-[9px]">({c.phone})</span>
+                    </div>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${wasSent ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>
+                      {wasSent ? '✓ Mesaj deschis' : c.smsMode === 'direct' ? '🚨 Trimite Alertă' : `🕵️ Trimite Decoy`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -238,24 +296,16 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
           </div>
         )}
 
-        {/* Simulated Active Call Screen Modal / Bar */}
-        {simulatedCalling && (
-          <div className="bg-slate-900 text-white rounded-2xl p-3 shadow-xl flex items-center justify-between animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                <Volume2 className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold">Apel 112 în curs...</div>
-                <div className="text-[10px] text-slate-300">Dispecerat Național Unic pentru Urgențe</div>
-              </div>
+        {/* Real Call Initiated Confirmation */}
+        {callInitiated && (
+          <div className="bg-slate-900 text-white rounded-2xl p-3 shadow-xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+              <Volume2 className="w-4 h-4" />
             </div>
-            <button
-              onClick={() => setSimulatedCalling(false)}
-              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg cursor-pointer"
-            >
-              Închide
-            </button>
+            <div>
+              <div className="text-xs font-bold">Apel 112 inițiat pe acest dispozitiv</div>
+              <div className="text-[10px] text-slate-300">Dacă dialer-ul nu s-a deschis automat, apasă din nou „Sună 112” mai jos.</div>
+            </div>
           </div>
         )}
 
@@ -278,7 +328,7 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
             className="w-full h-11 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white rounded-2xl font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition cursor-pointer border border-slate-700"
           >
             <Radio className="w-4 h-4 text-amber-400" />
-            <span>Trimite Alertă Silențioasă & SMS la Contacte</span>
+            <span>Alertă Silențioasă (fără apel) & Pregătește SMS Contacte</span>
           </button>
         </div>
       </div>
@@ -287,7 +337,7 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-700 shrink-0">
         <p className="font-semibold text-slate-900 mb-0.5">Protocol de Siguranță:</p>
         <p className="leading-tight text-slate-600">
-          Dacă agresorul se apropie, apasă tasta <strong>ESC</strong> sau butonul <strong>[X]</strong>. Dispeceratul și contactele tale au primit deja poziția ta.
+          Dacă agresorul se apropie, apasă tasta <strong>ESC</strong> sau butonul <strong>[X]</strong>. Apelul 112 și SMS-urile către contacte se trimit doar când apeși tu butoanele de mai sus.
         </p>
       </div>
 

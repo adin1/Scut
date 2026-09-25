@@ -1,26 +1,27 @@
-import { 
-  Evidence, 
-  Incident, 
-  Case, 
-  Child, 
-  ProtectionOrder, 
-  AuditEvent, 
-  Consent, 
-  SafetyPlan, 
-  SafetyCheckItem, 
-  ResourceProvider, 
-  TrustedContact, 
-  DisguisedNotification, 
-  CaseDossierSection, 
-  VoiceTriggerConfig, 
-  VoiceTriggerEvent, 
-  BiometricConfig, 
-  EmergencySmsConfig, 
-  PilotRegionConfig, 
+import {
+  Evidence,
+  Incident,
+  Case,
+  Child,
+  ProtectionOrder,
+  AuditEvent,
+  Consent,
+  SafetyPlan,
+  SafetyCheckItem,
+  ResourceProvider,
+  TrustedContact,
+  DisguisedNotification,
+  CaseDossierSection,
+  VoiceTriggerConfig,
+  VoiceTriggerEvent,
+  BiometricConfig,
+  EmergencySmsConfig,
+  PilotRegionConfig,
   VerifiedStatistic,
   CaseTask,
   CaseNote
 } from '../types/scut';
+import { CLUJ_RESOURCE_PROVIDERS } from './cluj';
 
 export const DEFAULT_BIOMETRIC_CONFIG: BiometricConfig = {
   enabled: true,
@@ -741,23 +742,7 @@ export const INITIAL_RESOURCE_PROVIDERS: ResourceProvider[] = [
     eligibility: 'Persoane vătămate fizic.',
     description: 'Examinare medico-legală gratuită sau decontată, eliberare certificat constatator oficial pentru dosarul penal și instanță.'
   },
-  {
-    id: 'sh-005',
-    name: 'Centrul Maternal de Urgență Cluj-Napoca (DGASPC Cluj)',
-    type: 'shelter',
-    address: 'Locație Securizată',
-    city: 'Cluj-Napoca',
-    county: 'Cluj',
-    phone: '0264.420.147',
-    emergency24h: true,
-    hasPsychologicalSupport: true,
-    schedule: 'Non-Stop 24/7',
-    services: ['Găzduire securizată', 'Suport Psihologic Permanent', 'Asistență socială', 'Baroul Cluj Pro-Bono'],
-    coordinates: { lat: 46.7712, lng: 23.6236 },
-    capacityStatus: 'available',
-    eligibility: 'Mame cu copii din județul Cluj și regiunea Nord-Vest.',
-    description: 'Găzduire securizată, asistență psihologică permanentă pentru mame și minori, asistență juridică gratuită.'
-  },
+  ...CLUJ_RESOURCE_PROVIDERS,
   {
     id: 'sh-006',
     name: 'Cabinet Barou Pro-Bono Asistență Juridică Gratuită',
@@ -866,8 +851,8 @@ export const DISGUISED_NOTIFICATIONS_CATALOG: DisguisedNotification[] = [
 
 export const PILOT_REGION_CONFIG: PilotRegionConfig = {
   pilotRegionName: 'Regiunea Pilot: Sector 1 București & Cluj-Napoca',
-  enabledInstitutionsCount: 8,
-  totalInstitutions: 8,
+  enabledInstitutionsCount: 12,
+  totalInstitutions: 12,
   pilotStatus: 'activ',
   averageTriageMinutes: 4.2,
   averageCaseAllocationHours: 1.8,

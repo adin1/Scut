@@ -23,7 +23,7 @@ import {
   DEFAULT_BIOMETRIC_CONFIG,
   DEFAULT_EMERGENCY_SMS_CONFIG
 } from './data/mockData';
-import { generateSha256Hash } from './utils/security';
+import { computeSha256Hash } from './utils/security';
 import { useVoiceGuardian } from './hooks/useVoiceGuardian';
 import { PhoneFrame } from './components/PhoneFrame';
 import { HomeScreen } from './components/HomeScreen';
@@ -76,7 +76,7 @@ export default function App() {
   const [isBiometricSettingsOpen, setIsBiometricSettingsOpen] = useState<boolean>(false);
 
   // Voice SOS Trigger Handler
-  const handleVoiceSOS = useCallback((keyword: string, transcript: string, isSilent: boolean) => {
+  const handleVoiceSOS = useCallback(async (keyword: string, transcript: string, isSilent: boolean) => {
     const eventTimestamp = Date.now();
     const evidenceId = `ev-voice-${eventTimestamp}`;
 
@@ -106,7 +106,7 @@ export default function App() {
         fileSize: '1.4 MB',
         duration: '01:00',
         location: 'Str. Victoriei, Sector 1, București',
-        sha256Hash: generateSha256Hash(`voice-sos-rec-${eventTimestamp}-${keyword}`),
+        sha256Hash: await computeSha256Hash(`voice-sos-rec-${eventTimestamp}-${keyword}`),
         description: `Înregistrare ambientală inițiată automat prin detecție vocală („${keyword}”) în timp ce telefonul rula modul: ${currentMode}.`,
         tags: ['SOS Vocal', 'Urgență 112', 'Înregistrare Automată'],
         isEncrypted: true,

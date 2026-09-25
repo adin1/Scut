@@ -376,13 +376,16 @@ export const SheltersMapScreen: React.FC<SheltersMapScreenProps> = ({ onBack, on
                 <Phone className="w-3.5 h-3.5" />
                 <span>Apelează ({activeSelected.phone})</span>
               </a>
-              <button
-                onClick={() => alert(`Traseu confidențial optimizat către ${activeSelected.name} generat. Navigarea nu lasă istoric în Google Maps.`)}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${activeSelected.coordinates.lat},${activeSelected.coordinates.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-3 py-2 bg-indigo-800 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1 shadow transition cursor-pointer"
+                aria-label={`Deschide traseul către ${activeSelected.name} în Google Maps`}
               >
                 <Navigation className="w-3.5 h-3.5" />
-                <span>Traseu Sigur</span>
-              </button>
+                <span>Traseu</span>
+              </a>
             </div>
           </div>
         )}
