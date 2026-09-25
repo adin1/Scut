@@ -397,6 +397,8 @@ export interface ResourceProvider {
   capacityStatus?: 'available' | 'limited' | 'confidential';
   eligibility: string;
   description: string;
+  sourceUrl?: string;
+  lastVerified?: string;
 }
 
 // Backward compatibility alias

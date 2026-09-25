@@ -4,8 +4,14 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+import { CLUJ_RESOURCE_PROVIDERS, CLUJ_NATIONAL_HELPLINES } from './src/data/cluj';
 
 dotenv.config();
+
+const CLUJ_RESOURCES_PROMPT_BLOCK = [
+  ...CLUJ_NATIONAL_HELPLINES.map(h => `- ${h.label}: ${h.phone} (${h.availability})`),
+  ...CLUJ_RESOURCE_PROVIDERS.map(r => `- ${r.name}: ${r.phone}${r.address ? ` — ${r.address}` : ''}`),
+].join('\n');
 
 const app = express();
 const PORT = 3000;
@@ -113,7 +119,9 @@ PRINCIPII OBLIGATORII:
    - Bagajul de urgență minim: Acte de identitate, bani/carduri, chei, medicamente, acte copii.
    - Număr Helpline Național ANES gratuit 24/7: 0800.500.333.
 6. Păstrează răspunsurile concise, directe și ușor de citit pe un ecran de telefon. Folosește bullet points clare.
-7. Context curent de triage dacă este specificat: ${contextCategory || 'general'}.`;
+7. Dacă victima menționează sau pare să fie în județul Cluj / Cluj-Napoca, recomandă prioritar instituțiile locale verificate de mai jos (nu inventa alte numere sau adrese):
+${CLUJ_RESOURCES_PROMPT_BLOCK}
+8. Context curent de triage dacă este specificat: ${contextCategory || 'general'}.`;
 
       const contents: Array<{ role?: string; parts: Array<{ text: string }> }> = [];
 
