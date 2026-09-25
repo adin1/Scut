@@ -130,7 +130,7 @@ PRINCIPII OBLIGATORII:
       contents.push({ role: 'user', parts: [{ text: message }] });
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents,
         config: {
           systemInstruction,
@@ -206,7 +206,7 @@ Text brut:
 ${documentText}`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { temperature: 0.1 }
       });
@@ -254,7 +254,7 @@ Sarcina ta:
 }`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { responseMimeType: 'application/json' }
       });
