@@ -574,7 +574,7 @@ export interface VoiceTriggerEvent {
   rawTranscript: string;
   modeAtTrigger: AppMode;
   isSilent: boolean;
-  coordinates: { lat: number; lng: number };
+  coordinates?: { lat: number; lng: number };
   evidenceLoggedId?: string;
   status: 'dispatched_112' | 'contacts_alerted' | 'audio_recording' | 'completed';
 }

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   AppMode, 
   EvidenceItem, 
@@ -23,7 +23,7 @@ import {
   DEFAULT_BIOMETRIC_CONFIG,
   DEFAULT_EMERGENCY_SMS_CONFIG
 } from './data/mockData';
-import { computeSha256Hash, deriveVaultKey } from './utils/security';
+import { computeSha256Hash, deriveVaultKey, encryptVaultText } from './utils/security';
 import { useVoiceGuardian } from './hooks/useVoiceGuardian';
 import { PhoneFrame } from './components/PhoneFrame';
 import { VaultUnlockPrompt } from './components/VaultUnlockPrompt';
@@ -76,12 +76,92 @@ export default function App() {
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState<boolean>(false);
   const [isBiometricSettingsOpen, setIsBiometricSettingsOpen] = useState<boolean>(false);
 
+  // Real AES-256-GCM vault key, derived from a session-only passphrase (never persisted).
+  const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null);
+  const handleUnlockVault = async (passphrase: string) => {
+    const { key } = await deriveVaultKey(passphrase);
+    setVaultKey(key);
+  };
+
+  // Refs so the voice-trigger handler (created once, before the mic stream or
+  // vault key necessarily exist) always reads their latest values without
+  // needing to be recreated on every change.
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const vaultKeyRef = useRef<CryptoKey | null>(null);
+  useEffect(() => { vaultKeyRef.current = vaultKey; }, [vaultKey]);
+
+  // Records real ambient audio off the already-permitted mic stream and saves
+  // it as evidence once done. Runs independently of handleVoiceSOS so the
+  // silent-mode UI doesn't block on a 60s recording. Never fabricates a
+  // recording if no stream is available.
+  const startVoiceTriggerRecording = useCallback((evidenceId: string, keyword: string, triggerMode: AppMode) => {
+    const stream = mediaStreamRef.current;
+    if (!stream || typeof MediaRecorder === 'undefined') return;
+
+    const chunks: Blob[] = [];
+    const startedAt = Date.now();
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream);
+    } catch {
+      return;
+    }
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = async () => {
+      if (chunks.length === 0) return;
+      const blob = new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' });
+      const arrayBuffer = await blob.arrayBuffer();
+      const sha256Hash = await computeSha256Hash(arrayBuffer);
+      const plainDescription = `Înregistrare ambientală reală, pornită automat prin detecție vocală („${keyword}”) în timp ce telefonul rula modul: ${triggerMode}.`;
+
+      let description = plainDescription;
+      let descriptionIv: string | undefined;
+      if (vaultKeyRef.current) {
+        const sealed = await encryptVaultText(vaultKeyRef.current, plainDescription);
+        description = sealed.ciphertextB64;
+        descriptionIv = sealed.ivB64;
+      }
+
+      setEvidenceList(prev => [{
+        id: evidenceId,
+        title: `Înregistrare Audio SOS Declanșată Vocal [„${keyword}”]`,
+        date: new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }),
+        timestamp: startedAt,
+        category: 'audio',
+        fileSize: `${(blob.size / (1024 * 1024)).toFixed(2)} MB`,
+        duration: `${Math.round((Date.now() - startedAt) / 1000)}s`,
+        sha256Hash,
+        description,
+        descriptionIv,
+        tags: ['SOS Vocal', 'Înregistrare Automată'],
+        isEncrypted: Boolean(vaultKeyRef.current),
+        tamperProofVerified: true
+      }, ...prev]);
+    };
+    recorder.start();
+    setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 60000);
+  }, []);
+
   // Voice SOS Trigger Handler
   const handleVoiceSOS = useCallback(async (keyword: string, transcript: string, isSilent: boolean) => {
     const eventTimestamp = Date.now();
     const evidenceId = `ev-voice-${eventTimestamp}`;
+    const hasMic = Boolean(mediaStreamRef.current);
+    const willRecord = voiceConfig.recordAudioOnTrigger && hasMic;
 
-    // 1. Log Voice Event
+    // Best-effort real GPS fix — never a hardcoded/fabricated location.
+    let coordinates: { lat: number; lng: number } | undefined;
+    if ('geolocation' in navigator) {
+      coordinates = await new Promise(resolve => {
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve(undefined),
+          { enableHighAccuracy: true, timeout: 4000 }
+        );
+      });
+    }
+
+    // 1. Log Voice Event — status reflects what actually happened, not a promise.
     const newEvent: VoiceTriggerEvent = {
       id: `ve-${eventTimestamp}`,
       timestamp: eventTimestamp,
@@ -90,44 +170,33 @@ export default function App() {
       rawTranscript: transcript,
       modeAtTrigger: currentMode,
       isSilent: isSilent,
-      coordinates: { lat: 44.4378, lng: 26.0946 },
-      evidenceLoggedId: evidenceId,
-      status: isSilent ? 'audio_recording' : 'dispatched_112'
+      coordinates,
+      evidenceLoggedId: willRecord ? evidenceId : undefined,
+      status: willRecord ? 'audio_recording' : isSilent ? 'completed' : 'dispatched_112'
     };
     setVoiceEvents(prev => [newEvent, ...prev]);
 
-    // 2. Automatically record sealed tamper-proof audio evidence in vault
-    if (voiceConfig.recordAudioOnTrigger) {
-      const newAudioEvidence: EvidenceItem = {
-        id: evidenceId,
-        title: `Înregistrare Audio SOS Declanșată Vocal [„${keyword}”]`,
-        date: new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }),
-        timestamp: eventTimestamp,
-        category: 'audio',
-        fileSize: '1.4 MB',
-        duration: '01:00',
-        location: 'Str. Victoriei, Sector 1, București',
-        sha256Hash: await computeSha256Hash(`voice-sos-rec-${eventTimestamp}-${keyword}`),
-        description: `Înregistrare ambientală inițiată automat prin detecție vocală („${keyword}”) în timp ce telefonul rula modul: ${currentMode}.`,
-        tags: ['SOS Vocal', 'Urgență 112', 'Înregistrare Automată'],
-        isEncrypted: true,
-        tamperProofVerified: true
-      };
-      setEvidenceList(prev => [newAudioEvidence, ...prev]);
+    // 2. Real ambient audio recording (off the mic already permitted for
+    // wake-word listening) — only if we actually have a stream to record from.
+    if (willRecord) {
+      startVoiceTriggerRecording(evidenceId, keyword, currentMode);
     }
 
     // 3. Dispatch action depending on silent mode
     if (isSilent) {
       // Keep stealth / disguised screen intact and display discreet toast in Dynamic Island
       setSilentSosToast({ keyword, timestamp: eventTimestamp });
-      
-      // Also inject a disguised system notification
+
+      // Also inject a disguised system notification — honest about what the
+      // app can and cannot do: it cannot silently call or notify 112 itself.
       const disguisedAck: DisguisedNotification = {
         id: `notif-voice-${eventTimestamp}`,
         disguisedTitle: 'Actualizare Sistem Finalizată',
         disguisedBody: 'Optimizarea memoriei cache s-a încheiat cu succes.',
-        realTitle: '🚨 Dispecerat 112 Notificat (Declanșare Vocală)',
-        realBody: `Dispeceratul a recepționat poziția ta și proba audio criptată. Ajutorul este pe drum.`,
+        realTitle: '🔕 Cuvânt de Cod Detectat — Nimic Trimis Automat',
+        realBody: willRecord
+          ? 'Se înregistrează audio ambiental real. Nimeni nu a fost notificat automat — deschide SCUT și apasă Sună 112 imediat ce e sigur.'
+          : 'Microfonul nu era disponibil, așa că nu s-a înregistrat nimic. Nimeni nu a fost notificat automat — deschide SCUT și apasă Sună 112 imediat ce e sigur.',
         category: 'system',
         time: 'Chiar acum',
         sender: 'Serviciu de Securitate SCUT'
@@ -138,7 +207,7 @@ export default function App() {
       setVoiceTriggeredKeyword(keyword);
       setCurrentMode('sos_screen');
     }
-  }, [currentMode, voiceConfig.recordAudioOnTrigger]);
+  }, [currentMode, voiceConfig.recordAudioOnTrigger, startVoiceTriggerRecording]);
 
   // Initialize Voice Guardian Hook
   const {
@@ -154,6 +223,8 @@ export default function App() {
     onTriggerSOS: handleVoiceSOS
   });
 
+  useEffect(() => { mediaStreamRef.current = activeMediaStream; }, [activeMediaStream]);
+
 
   // Quick exit emergency panic trigger
   const handleQuickExit = () => {
@@ -162,13 +233,6 @@ export default function App() {
 
   const handleAddEvidence = (item: EvidenceItem) => {
     setEvidenceList(prev => [item, ...prev]);
-  };
-
-  // Real AES-256-GCM vault key, derived from a session-only passphrase (never persisted).
-  const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null);
-  const handleUnlockVault = async (passphrase: string) => {
-    const { key } = await deriveVaultKey(passphrase);
-    setVaultKey(key);
   };
 
   const handleAddContact = (contact: TrustedContact) => {
