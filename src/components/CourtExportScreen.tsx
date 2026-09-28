@@ -26,28 +26,28 @@ interface CourtExportScreenProps {
   onBack: () => void;
   onQuickExit: () => void;
   evidenceList?: EvidenceItem[];
+  vaultKey: CryptoKey | null;
 }
 
 export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
   onBack,
   onQuickExit,
-  evidenceList = INITIAL_EVIDENCE_ITEMS
+  evidenceList = INITIAL_EVIDENCE_ITEMS,
+  vaultKey
 }) => {
   const [selectedFormat, setSelectedFormat] = useState<'pdf_a' | 'zip' | 'json' | 'csv'>('pdf_a');
   const [recipient, setRecipient] = useState('Judecătoria Sector 1 București • Secția Civilă / OPP');
   const [isZipModalOpen, setIsZipModalOpen] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
-  const [isVerifyingHashes, setIsVerifyingHashes] = useState(false);
-  const [hashesVerified, setHashesVerified] = useState(true);
 
-  const triggerVerification = () => {
-    setIsVerifyingHashes(true);
-    setTimeout(() => {
-      setIsVerifyingHashes(false);
-      setHashesVerified(true);
-      setExportNotice('Toate amprentele SHA-256 au fost reverificate cu succes împotriva registrului eIDAS.');
-      setTimeout(() => setExportNotice(null), 4000);
-    }, 600);
+  const showHashInfo = () => {
+    // Honest note: the app doesn't retain the original raw bytes for every
+    // evidence type here, and there's no eIDAS registry integration, so a
+    // real re-verification against source content isn't possible from this
+    // screen. This just clarifies the hashes were computed with real
+    // SHA-256 (Web Crypto) when each item was created, not faked.
+    setExportNotice('Amprentele SHA-256 afișate au fost calculate real (Web Crypto) la crearea fiecărei probe — nu sunt simulate.');
+    setTimeout(() => setExportNotice(null), 4000);
   };
 
   const handleDownloadCsv = () => {
@@ -187,12 +187,11 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
             <div className="flex items-center justify-between text-[10px] font-bold text-slate-700">
               <span>INDEXUL CRONOLOGIC AL PROBELOR ({evidenceList.length})</span>
               <button
-                onClick={triggerVerification}
-                disabled={isVerifyingHashes}
+                onClick={showHashInfo}
                 className="text-[9px] text-teal-700 hover:text-teal-900 flex items-center gap-1 font-bold cursor-pointer"
               >
-                <RefreshCw className={`w-2.5 h-2.5 ${isVerifyingHashes ? 'animate-spin' : ''}`} />
-                <span>{isVerifyingHashes ? 'Se verifică...' : 'Reverifică SHA-256'}</span>
+                <RefreshCw className="w-2.5 h-2.5" />
+                <span>Despre SHA-256</span>
               </button>
             </div>
 
@@ -235,7 +234,9 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
         <div className="grid grid-cols-2 gap-2 pt-1">
           <button
             onClick={() => setIsZipModalOpen(true)}
-            className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow transition cursor-pointer"
+            disabled={!vaultKey}
+            title={vaultKey ? undefined : 'Deblochează Seiful Probatoriu (din Jurnalul de Probe) înainte de export'}
+            className="p-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow transition cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5 text-teal-400" />
             <span>Export Arhivă ZIP Criptată</span>
@@ -268,15 +269,18 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
       </div>
 
       {/* ZIP Modal Integration */}
-      <ZipExportModal
-        isOpen={isZipModalOpen}
-        onClose={() => setIsZipModalOpen(false)}
-        evidenceList={evidenceList}
-      />
+      {vaultKey && (
+        <ZipExportModal
+          isOpen={isZipModalOpen}
+          onClose={() => setIsZipModalOpen(false)}
+          evidenceList={evidenceList}
+          vaultKey={vaultKey}
+        />
+      )}
 
       {/* Footer Disclaimer */}
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-600 text-center">
-        Pachetul probatoriu este compatibil cu sistemul electronic ECRIS al Ministerului Justiției.
+        Fișierele generate (PDF, ZIP, CSV, JSON) pot fi atașate manual la o cerere depusă în instanță — nu există o integrare directă cu ECRIS.
       </div>
     </div>
   );

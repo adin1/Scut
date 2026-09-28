@@ -440,6 +440,7 @@ export default function App() {
             onBack={() => setCurrentMode('scut_home')}
             onQuickExit={handleQuickExit}
             evidenceList={evidenceList}
+            vaultKey={vaultKey}
           />
         )}
 
