@@ -68,6 +68,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
   const [customMessage, setCustomMessage] = useState('ALERTA SCUT: Sunt într-o situație de criză iminentă. Transmit poziția mea pentru asistență.');
   const [includeGpsLocation, setIncludeGpsLocation] = useState<boolean>(true);
   const [includeBatteryStatus, setIncludeBatteryStatus] = useState<boolean>(true);
+  const [formError, setFormError] = useState('');
 
   // Simulation states
   const [simStep, setSimStep] = useState<number>(0);
@@ -124,6 +125,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
     setCustomMessage('ALERTA SCUT: Sunt într-o situație de criză iminentă. Transmit poziția mea.');
     setIncludeGpsLocation(true);
     setIncludeBatteryStatus(true);
+    setFormError('');
     setShowAddModal(true);
   };
 
@@ -138,12 +140,40 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
     setCustomMessage(contact.customMessage || 'ALERTA SCUT: Sunt într-o situație de criză iminentă.');
     setIncludeGpsLocation(contact.includeGpsLocation ?? true);
     setIncludeBatteryStatus(contact.includeBatteryStatus ?? true);
+    setFormError('');
     setShowAddModal(true);
+  };
+
+  const isValidPhone = (value: string) => {
+    if (!/^[+\d][\d\s().-]*$/.test(value.trim())) return false;
+    const digitCount = value.replace(/\D/g, '').length;
+    return digitCount >= 9 && digitCount <= 15;
   };
 
   const handleSubmitContactForm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) return;
+    setFormError('');
+
+    if (!name.trim()) {
+      setFormError('Numele contactului este obligatoriu.');
+      return;
+    }
+    if (!phone.trim()) {
+      setFormError('Numărul de telefon este obligatoriu.');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      setFormError('Numărul de telefon nu pare valid. Folosește doar cifre, spații și opțional „+" la început (ex: +40 722 000 000).');
+      return;
+    }
+    if (smsMode === 'decoy' && !decoyCodeWord.trim()) {
+      setFormError('Fraza decoy este obligatorie pentru modul camuflat.');
+      return;
+    }
+    if (smsMode === 'direct' && !customMessage.trim()) {
+      setFormError('Mesajul direct de urgență este obligatoriu.');
+      return;
+    }
 
     if (editingContact) {
       const updated: TrustedContact = {
@@ -264,6 +294,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
           onClick={onQuickExit}
           className="w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow transition cursor-pointer"
           title="Ieșire Rapidă"
+          aria-label="Ieșire Rapidă"
         >
           <X className="w-4 h-4 stroke-[2.5]" />
         </button>
@@ -283,12 +314,12 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">
-                  Expediere Automată SMS la Declanșare SOS
+                  Pregătire SMS la Declanșare SOS
                 </h3>
                 <p className="text-[10px] text-slate-600">
-                  {activeConfig.autoSmsEnabled 
-                    ? `Activ: ${enabledSosContactsCount} din ${contacts.length} contacte vor fi alertate automat prin SMS` 
-                    : 'Dezactivat: Niciun SMS automat nu va fi transmis la SOS'}
+                  {activeConfig.autoSmsEnabled
+                    ? `Activ: ${enabledSosContactsCount} din ${contacts.length} contacte vor apărea pe ecranul SOS, gata de trimis cu un tap`
+                    : 'Dezactivat: contactele nu vor apărea pe ecranul SOS'}
                 </p>
               </div>
             </div>
@@ -458,33 +489,45 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
                 {editingContact ? 'Editare Contact & Mesaj SOS' : 'Adăugare Contact de Siguranță'}
               </span>
               <button 
-                type="button" 
-                onClick={() => setShowAddModal(false)} 
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                aria-label="Închide"
                 className="text-stone-400 hover:text-stone-700 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {formError && (
+              <div role="alert" className="flex items-start gap-1.5 bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-medium px-2.5 py-2 rounded-xl">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">Nume & Relație:</label>
+              <label htmlFor="contact-name" className="text-[11px] font-semibold text-slate-700 block mb-0.5">Nume & Relație:</label>
               <input
+                id="contact-name"
                 type="text"
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={e => { setName(e.target.value); setFormError(''); }}
                 placeholder="ex: Maria Ionescu (Soră)"
+                maxLength={80}
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">Număr de Telefon (pentru SMS Urgență):</label>
+              <label htmlFor="contact-phone" className="text-[11px] font-semibold text-slate-700 block mb-0.5">Număr de Telefon (pentru SMS Urgență):</label>
               <input
+                id="contact-phone"
                 type="tel"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
+                onChange={e => { setPhone(e.target.value); setFormError(''); }}
                 placeholder="ex: +40 722 000 000"
+                maxLength={20}
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 outline-none font-mono"
                 required
               />
@@ -493,8 +536,8 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
             {/* Alert on SOS Toggle */}
             <div className="flex items-center justify-between p-2 bg-amber-50 rounded-xl border border-amber-200">
               <div>
-                <span className="text-xs font-bold text-amber-950 block">Activează SMS Automat la SOS</span>
-                <span className="text-[10px] text-amber-800">Trimite SMS instant la declanșarea alertei</span>
+                <span className="text-xs font-bold text-amber-950 block">Afișează pe ecranul SOS</span>
+                <span className="text-[10px] text-amber-800">Apare gata de trimis cu un tap la declanșarea alertei</span>
               </div>
               <input
                 type="checkbox"
@@ -547,28 +590,32 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
             {/* Decoy Phrase or Custom Direct Text Input */}
             {smsMode === 'decoy' ? (
               <div>
-                <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">
+                <label htmlFor="contact-decoy" className="text-[11px] font-semibold text-slate-700 block mb-0.5">
                   Fraza Decoy Secretă (ce va recepționa contactul):
                 </label>
                 <input
+                  id="contact-decoy"
                   type="text"
                   value={decoyCodeWord}
-                  onChange={e => setDecoyCodeWord(e.target.value)}
+                  onChange={e => { setDecoyCodeWord(e.target.value); setFormError(''); }}
                   placeholder="ex: Am ajuns cu bine acasă."
+                  maxLength={160}
                   className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 outline-none"
                   required
                 />
               </div>
             ) : (
               <div>
-                <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">
+                <label htmlFor="contact-custom-message" className="text-[11px] font-semibold text-slate-700 block mb-0.5">
                   Mesaj Direct de Urgență:
                 </label>
                 <textarea
+                  id="contact-custom-message"
                   rows={2}
                   value={customMessage}
-                  onChange={e => setCustomMessage(e.target.value)}
+                  onChange={e => { setCustomMessage(e.target.value); setFormError(''); }}
                   placeholder="ex: ALERTA SCUT: Sunt în pericol. Vă rog trimiteți ajutor!"
+                  maxLength={300}
                   className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-rose-500 outline-none"
                   required
                 />
@@ -626,7 +673,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
                 <Settings2 className="w-4 h-4 text-amber-600" />
                 Configurare Dispecerizare SMS SOS
               </span>
-              <button onClick={() => setShowConfigModal(false)} className="text-stone-400 hover:text-stone-700">
+              <button onClick={() => setShowConfigModal(false)} aria-label="Închide" className="text-stone-400 hover:text-stone-700">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -679,8 +726,9 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
                 <Zap className="w-4 h-4 text-amber-600 animate-bounce" />
                 <span className="text-xs font-bold text-slate-900">Simulare Expediere SMS de Urgență</span>
               </div>
-              <button 
-                onClick={() => setShowSimulateModal(false)} 
+              <button
+                onClick={() => setShowSimulateModal(false)}
+                aria-label="Închide"
                 className="text-stone-400 hover:text-stone-700 cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -781,7 +829,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
 
       {/* Safety Notice */}
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-600 text-center shrink-0">
-        Mesajele SMS sunt transmise direct pe rețeaua GSM chiar și fără semnal de date 4G/5G, prin canal securizat de urgență.
+        SMS-urile standard funcționează pe rețeaua GSM chiar și fără semnal de date 4G/5G — dar trebuie să apeși tu „Trimite" în aplicația de mesaje; SCUT nu le trimite automat sau printr-un canal special.
       </div>
 
     </div>

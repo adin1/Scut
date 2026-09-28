@@ -92,6 +92,7 @@ export const SafetyPlanScreen: React.FC<SafetyPlanScreenProps> = ({ onBack, onQu
             onClick={onQuickExit}
             className="w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow transition cursor-pointer"
             title="Ieșire Rapidă (ESC)"
+            aria-label="Ieșire Rapidă (ESC)"
           >
             <X className="w-4 h-4 stroke-[2.5]" />
           </button>

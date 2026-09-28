@@ -311,8 +311,9 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
               <div className="text-[10px] text-slate-500 font-normal">Pentru Avocat & Instanță de Judecată</div>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
+            aria-label="Închide"
             className="p-1 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition cursor-pointer"
           >
             <X className="w-4 h-4" />

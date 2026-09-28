@@ -64,15 +64,27 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteTags, setNoteTags] = useState('Agresiune verbală, Jurnal');
-  
+  const [noteFormError, setNoteFormError] = useState('');
+
   // Document upload state
-  const [docTitle, setDocTitle] = useState('Certificat Medico-Legal INML');
-  const [docDescription, setDocDescription] = useState('Raport oficial de constatare leziuni și certificat medical emis de medicina legală.');
+  const [docTitle, setDocTitle] = useState('');
+  const [docDescription, setDocDescription] = useState('');
   const [docTags, setDocTags] = useState('Document oficial, INML, Probă Judiciară');
-  const [uploadedFileName, setUploadedFileName] = useState<string>('certificat_inml_2026.pdf');
-  const [uploadedFileSize, setUploadedFileSize] = useState<string>('2.4 MB');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [uploadedFileSize, setUploadedFileSize] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [docFormError, setDocFormError] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // 20 MB
+  const ALLOWED_UPLOAD_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg', 'image/png', 'image/webp', 'image/heic',
+    'audio/mpeg', 'audio/mp4', 'audio/wav',
+    'video/mp4', 'video/quicktime'
+  ];
 
   // Audio record simulation state
   const [isRecording, setIsRecording] = useState(false);
@@ -161,7 +173,11 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
 
   const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!noteTitle.trim()) return;
+    setNoteFormError('');
+    if (!noteTitle.trim()) {
+      setNoteFormError('Titlul incidentului este obligatoriu.');
+      return;
+    }
 
     const newItem: EvidenceItem = {
       id: `ev-note-${Date.now()}`,
@@ -184,8 +200,19 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   };
 
   const handleRealFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocFormError('');
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setDocFormError(`Fișierul e prea mare (${(file.size / (1024 * 1024)).toFixed(1)} MB). Limita este 20 MB.`);
+        e.target.value = '';
+        return;
+      }
+      if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
+        setDocFormError('Tip de fișier neacceptat. Sunt permise: PDF, imagini (JPG/PNG/WEBP/HEIC), audio (MP3/M4A/WAV) și video (MP4/MOV).');
+        e.target.value = '';
+        return;
+      }
       setUploadedFile(file);
       setUploadedFileName(file.name);
       const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
@@ -195,6 +222,16 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   };
 
   const handleSaveDocument = async () => {
+    setDocFormError('');
+    if (!uploadedFile) {
+      setDocFormError('Selectează un fișier real înainte de a-l încuia în seif.');
+      return;
+    }
+    if (!docTitle.trim()) {
+      setDocFormError('Titlul documentului este obligatoriu.');
+      return;
+    }
+
     // Hash the actual uploaded file bytes when a real file was selected,
     // so the integrity proof reflects the real document, not just its name.
     const hashInput = uploadedFile ? await uploadedFile.arrayBuffer() : `doc-${Date.now()}-${uploadedFileName}`;
@@ -240,6 +277,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
           onClick={onQuickExit}
           className="w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow transition cursor-pointer"
           title="Ieșire Rapidă"
+          aria-label="Ieșire Rapidă"
         >
           <X className="w-4 h-4 stroke-[2.5]" />
         </button>
@@ -438,7 +476,16 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
               </button>
 
               <button
-                onClick={() => { setShowAddMenu(false); setActiveModal('document'); }}
+                onClick={() => {
+                  setShowAddMenu(false);
+                  setDocFormError('');
+                  setUploadedFile(null);
+                  setUploadedFileName('');
+                  setUploadedFileSize('');
+                  setDocTitle('');
+                  setDocDescription('');
+                  setActiveModal('document');
+                }}
                 className="w-full p-2.5 text-left rounded-xl hover:bg-stone-100 flex items-center gap-3 text-xs font-semibold text-slate-800 transition cursor-pointer"
               >
                 <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
@@ -493,6 +540,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
               </span>
               <button
                 onClick={() => setSelectedEvidence(null)}
+                aria-label="Închide"
                 className="p-1 rounded-full hover:bg-stone-100 text-stone-500 cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -588,7 +636,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 <Camera className="w-4 h-4" />
                 Cameră Securizată SCUT
               </span>
-              <button onClick={() => setActiveModal(null)} className="text-stone-400 hover:text-white cursor-pointer">
+              <button onClick={() => setActiveModal(null)} aria-label="Închide" className="text-stone-400 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -625,7 +673,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 <Mic className="w-4 h-4" />
                 Microfon Ambiental Securizat
               </span>
-              <button onClick={() => setActiveModal(null)} className="text-stone-400 hover:text-white cursor-pointer">
+              <button onClick={() => setActiveModal(null)} aria-label="Închide" className="text-stone-400 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -686,40 +734,53 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 <FileText className="w-4 h-4 text-emerald-600" />
                 Adaugă Notă Incident
               </span>
-              <button type="button" onClick={() => setActiveModal(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer">
+              <button type="button" onClick={() => setActiveModal(null)} aria-label="Închide" className="text-stone-400 hover:text-stone-700 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {noteFormError && (
+              <div role="alert" className="flex items-start gap-1.5 bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-medium px-2.5 py-2 rounded-xl">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{noteFormError}</span>
+              </div>
+            )}
+
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">Titlu Incident:</label>
+              <label htmlFor="note-title" className="text-[11px] font-semibold text-slate-700 block mb-0.5">Titlu Incident:</label>
               <input
+                id="note-title"
                 type="text"
                 value={noteTitle}
-                onChange={e => setNoteTitle(e.target.value)}
+                onChange={e => { setNoteTitle(e.target.value); setNoteFormError(''); }}
                 placeholder="ex: Amenințare verbală și blocare ieșire"
+                maxLength={120}
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">Descriere Detaliată:</label>
+              <label htmlFor="note-content" className="text-[11px] font-semibold text-slate-700 block mb-0.5">Descriere Detaliată:</label>
               <textarea
+                id="note-content"
                 value={noteContent}
                 onChange={e => setNoteContent(e.target.value)}
                 rows={3}
                 placeholder="Menționează ora exactă, ce a spus agresorul, dacă au fost martori prezenți..."
+                maxLength={4000}
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
               ></textarea>
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">Etichete (separate prin virgulă):</label>
+              <label htmlFor="note-tags" className="text-[11px] font-semibold text-slate-700 block mb-0.5">Etichete (separate prin virgulă):</label>
               <input
+                id="note-tags"
                 type="text"
                 value={noteTags}
                 onChange={e => setNoteTags(e.target.value)}
+                maxLength={200}
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs"
               />
             </div>
@@ -753,7 +814,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 <FileUp className="w-4 h-4 text-blue-600" />
                 Încărcare Document Securizat
               </span>
-              <button onClick={() => setActiveModal(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer">
+              <button onClick={() => setActiveModal(null)} aria-label="Închide" className="text-stone-400 hover:text-stone-700 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -764,7 +825,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
               ref={fileInputRef} 
               onChange={handleRealFileSelect}
               className="hidden" 
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp3,.m4a"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.heic,.mp3,.m4a,.wav,.mp4,.mov"
             />
 
             {/* Interactive File Dropzone */}
@@ -777,51 +838,32 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 {uploadedFileName ? uploadedFileName : 'Selectează sau trage fișierul aici'}
               </div>
               <div className="text-[10px] text-blue-600 font-mono mt-0.5">
-                {uploadedFileSize} • PDF, JPG, PNG, DOC
+                {uploadedFileSize ? `${uploadedFileSize} • ` : ''}PDF, DOC, JPG, PNG, audio sau video — max 20 MB
               </div>
               <div className="text-[9px] text-slate-400 mt-1">
                 Apasă pentru a alege fișier de pe dispozitiv
               </div>
             </div>
 
-            {/* Quick Preset Buttons */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-semibold text-slate-500 block">Sau alege un șablon de probă:</span>
-              <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUploadedFileName('Certificat_Medico_Legal_INML.pdf');
-                    setDocTitle('Certificat Medico-Legal INML');
-                    setUploadedFileSize('2.8 MB');
-                  }}
-                  className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-lg text-left text-slate-700 font-medium truncate"
-                >
-                  📄 Certificat INML
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUploadedFileName('Capturi_Mesaje_Amenintare.png');
-                    setDocTitle('Capturi Mesaje Amenințare WhatsApp');
-                    setUploadedFileSize('1.9 MB');
-                  }}
-                  className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-lg text-left text-slate-700 font-medium truncate"
-                >
-                  🖼️ Capturi Amenințări
-                </button>
+            {docFormError && (
+              <div role="alert" className="flex items-start gap-1.5 bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-medium px-2.5 py-2 rounded-xl">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{docFormError}</span>
               </div>
-            </div>
+            )}
 
             {/* Document Title Input */}
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-0.5">Denumire Document:</label>
+              <label htmlFor="doc-title" className="text-[11px] font-semibold text-slate-700 block mb-0.5">Denumire Document:</label>
               <input
+                id="doc-title"
                 type="text"
                 value={docTitle}
-                onChange={e => setDocTitle(e.target.value)}
+                onChange={e => { setDocTitle(e.target.value); setDocFormError(''); }}
+                maxLength={120}
+                placeholder="ex: Certificat Medico-Legal INML"
                 className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                required
               />
             </div>
 

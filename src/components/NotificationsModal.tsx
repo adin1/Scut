@@ -36,6 +36,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Închide"
             className="p-1 rounded-full hover:bg-stone-100 text-stone-500"
           >
             <X className="w-4 h-4" />
