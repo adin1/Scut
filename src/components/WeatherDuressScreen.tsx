@@ -1,22 +1,101 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CloudSun, Wind, Droplets, Compass, MapPin, Radio, AlertOctagon, RefreshCw, ArrowLeft, Mic } from 'lucide-react';
+import { EvidenceItem } from '../types/scut';
+import { computeSha256Hash, encryptVaultText } from '../utils/security';
 
 interface WeatherDuressScreenProps {
   onReturnToCalculator: () => void;
   onReturnHome: () => void;
+  /** Already-permitted mic stream from the voice-guardian listener, if it's running — reusing it avoids a second, visible permission prompt that would tip off the person coercing the victim. */
+  activeMediaStream: MediaStream | null;
+  /** Session vault key, if the victim already unlocked the evidence vault earlier — used to actually encrypt the recording. Recording still proceeds without it, just unencrypted. */
+  vaultKey: CryptoKey | null;
+  onSaveEvidence: (item: EvidenceItem) => void;
 }
 
 export const WeatherDuressScreen: React.FC<WeatherDuressScreenProps> = ({
   onReturnToCalculator,
-  onReturnHome
+  onReturnHome,
+  activeMediaStream,
+  vaultKey,
+  onSaveEvidence
 }) => {
   const [audioRecordingSeconds, setAudioRecordingSeconds] = useState<number>(60);
   const [showAuditorTelemetry, setShowAuditorTelemetry] = useState<boolean>(true);
+  const [recorderState, setRecorderState] = useState<'unavailable' | 'recording' | 'saved'>('unavailable');
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const savedRef = useRef(false);
 
-  // Countdown timer for simulated 60s ambient audio buffer
+  const finalizeRecording = async () => {
+    if (savedRef.current || chunksRef.current.length === 0) return;
+    savedRef.current = true;
+    const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
+    const arrayBuffer = await blob.arrayBuffer();
+    const sha256Hash = await computeSha256Hash(arrayBuffer);
+    const plainDescription = 'Înregistrare audio ambientală reală, pornită automat la introducerea PIN-ului de constrângere.';
+
+    let description = plainDescription;
+    let descriptionIv: string | undefined;
+    if (vaultKey) {
+      const sealed = await encryptVaultText(vaultKey, plainDescription);
+      description = sealed.ciphertextB64;
+      descriptionIv = sealed.ivB64;
+    }
+
+    onSaveEvidence({
+      id: `ev-duress-audio-${Date.now()}`,
+      title: 'Înregistrare Audio — Mod Constrângere',
+      category: 'audio',
+      date: new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      timestamp: Date.now(),
+      description,
+      descriptionIv,
+      tags: ['Mod Constrângere', 'Audio Ambiental'],
+      fileSize: `${(blob.size / (1024 * 1024)).toFixed(2)} MB`,
+      duration: `${60 - audioRecordingSeconds}s`,
+      sha256Hash,
+      isEncrypted: Boolean(vaultKey),
+      tamperProofVerified: true
+    });
+    setRecorderState('saved');
+  };
+
+  // Real ambient audio recording off the already-permitted mic stream, for up to 60s.
+  useEffect(() => {
+    if (!activeMediaStream || typeof MediaRecorder === 'undefined') {
+      setRecorderState('unavailable');
+      return;
+    }
+    try {
+      const recorder = new MediaRecorder(activeMediaStream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = () => { finalizeRecording(); };
+      recorder.start();
+      setRecorderState('recording');
+    } catch {
+      setRecorderState('unavailable');
+    }
+
+    return () => {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMediaStream]);
+
+  // Countdown timer for the real 60s ambient audio recording window.
   useEffect(() => {
     const timer = setInterval(() => {
-      setAudioRecordingSeconds(prev => (prev > 0 ? prev - 1 : 0));
+      setAudioRecordingSeconds(prev => {
+        if (prev <= 1 && recorderRef.current && recorderRef.current.state === 'recording') {
+          recorderRef.current.stop();
+        }
+        return prev > 0 ? prev - 1 : 0;
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -55,28 +134,34 @@ export const WeatherDuressScreen: React.FC<WeatherDuressScreenProps> = ({
               <AlertOctagon className="w-4 h-4 text-rose-500 animate-pulse" />
               PIN CONSTRÂNGERE ACTIVAT (0000)
             </span>
-            <span className="text-[10px] bg-rose-900/60 text-rose-200 px-2 py-0.5 rounded-full font-mono">
-              ALERTA SILENȚIOASĂ TRIMISĂ
+            <span className="text-[10px] bg-amber-900/60 text-amber-200 px-2 py-0.5 rounded-full font-mono">
+              NICIO ALERTĂ AUTOMATĂ
             </span>
           </div>
 
           <p className="text-[11px] text-stone-300 leading-relaxed mb-2">
-            Agresorul vede doar o aplicație obișnuită de vreme. În fundal, SCUT a executat măsurile de urgență:
+            Agresorul vede doar o aplicație obișnuită de vreme. <strong className="text-amber-300">Important:</strong> o pagină web nu poate suna sau transmite locația la 112 fără o acțiune vizibilă — nimic nu a fost trimis automat. Dacă poți, sună real la 112 imediat ce e sigur.
           </p>
 
           <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
             <div className="bg-stone-900 p-2 rounded border border-stone-800">
-              <span className="text-stone-400 block text-[9px]">COORDONATE GPS REALE:</span>
-              <span className="text-emerald-400 font-semibold">44.4378° N, 26.0946° E</span>
-              <span className="text-stone-500 block text-[8px]">Acuratețe: 3m (Dispecerat 112)</span>
+              <span className="text-stone-400 block text-[9px]">TRANSMITERE GPS:</span>
+              <span className="text-amber-400 font-semibold">Netrimisă automat</span>
+              <span className="text-stone-500 block text-[8px]">Necesită apel/SMS real</span>
             </div>
             <div className="bg-stone-900 p-2 rounded border border-stone-800">
               <span className="text-stone-400 block text-[9px]">ÎNREGISTRARE AUDIO AMBIENTAL:</span>
-              <span className="text-rose-400 font-semibold flex items-center gap-1">
-                <Mic className="w-3 h-3 animate-pulse" />
-                {audioRecordingSeconds > 0 ? `Activ (${audioRecordingSeconds}s rămase)` : '60s Salvat în Vault'}
-              </span>
-              <span className="text-stone-500 block text-[8px]">Criptat AES-256 (fără notificare)</span>
+              {recorderState === 'recording' ? (
+                <span className="text-rose-400 font-semibold flex items-center gap-1">
+                  <Mic className="w-3 h-3 animate-pulse" />
+                  Activ real ({audioRecordingSeconds}s rămase)
+                </span>
+              ) : recorderState === 'saved' ? (
+                <span className="text-emerald-400 font-semibold">Salvată în Seif{vaultKey ? ' (criptată)' : ''}</span>
+              ) : (
+                <span className="text-amber-400 font-semibold">Indisponibilă (microfon nepermis anterior)</span>
+              )}
+              <span className="text-stone-500 block text-[8px]">Reutilizează microfonul deja permis, fără prompt nou</span>
             </div>
           </div>
         </div>

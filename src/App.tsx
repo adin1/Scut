@@ -23,9 +23,10 @@ import {
   DEFAULT_BIOMETRIC_CONFIG,
   DEFAULT_EMERGENCY_SMS_CONFIG
 } from './data/mockData';
-import { computeSha256Hash } from './utils/security';
+import { computeSha256Hash, deriveVaultKey } from './utils/security';
 import { useVoiceGuardian } from './hooks/useVoiceGuardian';
 import { PhoneFrame } from './components/PhoneFrame';
+import { VaultUnlockPrompt } from './components/VaultUnlockPrompt';
 import { HomeScreen } from './components/HomeScreen';
 import { CalculatorScreen } from './components/CalculatorScreen';
 import { BiometricAuthScreen } from './components/BiometricAuthScreen';
@@ -145,7 +146,8 @@ export default function App() {
     latestTranscript,
     interimTranscript,
     audioLevel,
-    simulateVoiceInput
+    simulateVoiceInput,
+    activeMediaStream
   } = useVoiceGuardian({
     config: voiceConfig,
     currentMode: currentMode,
@@ -160,6 +162,13 @@ export default function App() {
 
   const handleAddEvidence = (item: EvidenceItem) => {
     setEvidenceList(prev => [item, ...prev]);
+  };
+
+  // Real AES-256-GCM vault key, derived from a session-only passphrase (never persisted).
+  const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null);
+  const handleUnlockVault = async (passphrase: string) => {
+    const { key } = await deriveVaultKey(passphrase);
+    setVaultKey(key);
   };
 
   const handleAddContact = (contact: TrustedContact) => {
@@ -247,6 +256,9 @@ export default function App() {
           <WeatherDuressScreen
             onReturnToCalculator={() => setCurrentMode('calculator')}
             onReturnHome={() => setCurrentMode('phone_home')}
+            activeMediaStream={activeMediaStream}
+            vaultKey={vaultKey}
+            onSaveEvidence={handleAddEvidence}
           />
         )}
 
@@ -282,12 +294,17 @@ export default function App() {
 
         {/* 6. Evidence Vault Screen (Phase 4 Screen 4) */}
         {currentMode === 'evidence_vault' && (
-          <EvidenceJournalScreen
-            evidenceList={evidenceList}
-            onAddEvidence={handleAddEvidence}
-            onBack={() => setCurrentMode('scut_home')}
-            onQuickExit={handleQuickExit}
-          />
+          vaultKey ? (
+            <EvidenceJournalScreen
+              evidenceList={evidenceList}
+              onAddEvidence={handleAddEvidence}
+              onBack={() => setCurrentMode('scut_home')}
+              onQuickExit={handleQuickExit}
+              vaultKey={vaultKey}
+            />
+          ) : (
+            <VaultUnlockPrompt onUnlock={handleUnlockVault} />
+          )
         )}
 
         {/* 7. Triage & Assistance Screen (Phase 4 Screen 5) */}

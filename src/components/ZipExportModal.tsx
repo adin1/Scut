@@ -22,17 +22,20 @@ import {
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { EvidenceItem } from '../types/scut';
+import { decryptVaultText } from '../utils/security';
 
 interface ZipExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   evidenceList: EvidenceItem[];
+  vaultKey: CryptoKey;
 }
 
 export const ZipExportModal: React.FC<ZipExportModalProps> = ({
   isOpen,
   onClose,
-  evidenceList
+  evidenceList,
+  vaultKey
 }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -118,7 +121,23 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       manifestText += `                      INDEXUL CRONOLOGIC AL PROBELOR\n`;
       manifestText += `------------------------------------------------------------------------\n\n`;
 
+      // Decrypt every real AES-256-GCM sealed description once, up front — the
+      // ZIP export needs actual readable text for the lawyer, not ciphertext.
+      const decryptedDescriptions = new Map<string, string>();
+      await Promise.all(evidenceList.map(async item => {
+        if (item.descriptionIv) {
+          try {
+            decryptedDescriptions.set(item.id, await decryptVaultText(vaultKey, item.description, item.descriptionIv));
+          } catch {
+            decryptedDescriptions.set(item.id, '[Nu a putut fi decriptat cu parola curentă a seifului]');
+          }
+        } else {
+          decryptedDescriptions.set(item.id, item.description);
+        }
+      }));
+
       evidenceList.forEach((item, index) => {
+        const description = decryptedDescriptions.get(item.id) || item.description;
         manifestText += `[PROBA #${index + 1}] ID: ${item.id}\n`;
         manifestText += `  Titlu: ${item.title}\n`;
         manifestText += `  Categorie: ${item.category.toUpperCase()}\n`;
@@ -126,7 +145,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
         manifestText += `  Dimensiune: ${item.fileSize}\n`;
         if (item.duration) manifestText += `  Durată Audio: ${item.duration}\n`;
         if (item.location) manifestText += `  Coordonate / Locație: ${item.location}\n`;
-        manifestText += `  Descriere: ${item.description}\n`;
+        manifestText += `  Descriere: ${description}\n`;
         manifestText += `  Etichete Judiciare: ${item.tags.join(', ')}\n`;
         manifestText += `  Amprentă SHA-256 (Hash Integritate): ${item.sha256Hash}\n`;
         manifestText += `  Stare Seif: Criptat AES-256 GCM (Validat)\n\n`;
@@ -149,7 +168,11 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
           encryptionStandard: 'AES-256-GCM',
           tamperProofStandard: 'Law 217/2003 Romania'
         },
-        items: evidenceList
+        items: evidenceList.map(item => ({
+          ...item,
+          description: decryptedDescriptions.get(item.id) || item.description,
+          descriptionIv: undefined,
+        }))
       };
 
       // 3. Instructions for Lawyer
@@ -183,7 +206,8 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
 
       // Populate evidence files into folders
       evidenceList.forEach((item, i) => {
-        const fileContent = `ID PROBĂ: ${item.id}\nTITLU: ${item.title}\nDATĂ: ${item.date}\nLOCAȚIE: ${item.location || 'București (Locație Protejată)'}\nSHA-256: ${item.sha256Hash}\n\nDESCRIERE DETALIATĂ:\n${item.description}\n\nETICHETE:\n${item.tags.join(', ')}\n\n[PROBĂ ORIGINALĂ IZOLATĂ ÎN SANDBOX SCUT]`;
+        const description = decryptedDescriptions.get(item.id) || item.description;
+        const fileContent = `ID PROBĂ: ${item.id}\nTITLU: ${item.title}\nDATĂ: ${item.date}\nLOCAȚIE: ${item.location || 'București (Locație Protejată)'}\nSHA-256: ${item.sha256Hash}\n\nDESCRIERE DETALIATĂ:\n${description}\n\nETICHETE:\n${item.tags.join(', ')}\n\n[PROBĂ ORIGINALĂ IZOLATĂ ÎN SANDBOX SCUT]`;
 
         if (item.category === 'audio') {
           audioFolder?.file(`AUDIO_${i + 1}_${item.id}.txt`, fileContent);
