@@ -27,22 +27,25 @@ import {
   KeyRound
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
-import { computeSha256Hash, formatTime } from '../utils/security';
+import { computeSha256Hash, formatTime, encryptVaultText } from '../utils/security';
 import { AesEncryptionModal } from './AesEncryptionModal';
 import { ZipExportModal } from './ZipExportModal';
+import { DecryptedText } from './DecryptedText';
 
 interface EvidenceJournalScreenProps {
   evidenceList: EvidenceItem[];
   onAddEvidence: (item: EvidenceItem) => void;
   onBack: () => void;
   onQuickExit: () => void;
+  vaultKey: CryptoKey;
 }
 
 export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   evidenceList,
   onAddEvidence,
   onBack,
-  onQuickExit
+  onQuickExit,
+  vaultKey
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'photo' | 'audio' | 'document' | 'note'>('all');
   const [showAddMenu, setShowAddMenu] = useState<boolean>(false);
@@ -90,8 +93,11 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
     setAudioTimer(timer);
   };
 
-  const startEncryptionProcess = (item: EvidenceItem) => {
-    setPendingEncryptionItem(item);
+  const startEncryptionProcess = async (item: EvidenceItem) => {
+    // Real AES-256-GCM seal of the description before the modal ever renders it —
+    // the "encryption" animation is now dressing up a real completed operation.
+    const { ciphertextB64, ivB64 } = await encryptVaultText(vaultKey, item.description);
+    setPendingEncryptionItem({ ...item, description: ciphertextB64, descriptionIv: ivB64 });
     setIsEncryptionModalOpen(true);
   };
 
@@ -346,7 +352,9 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 </div>
 
                 <p className="text-[11px] text-slate-600 mt-2 line-clamp-2 leading-relaxed">
-                  {item.description}
+                  {item.descriptionIv
+                    ? <DecryptedText ciphertext={item.description} ivB64={item.descriptionIv} vaultKey={vaultKey} />
+                    : item.description}
                 </p>
 
                 <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px]">
@@ -511,7 +519,9 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed bg-stone-50 p-2.5 rounded-xl border border-stone-200">
-              {selectedEvidence.description}
+              {selectedEvidence.descriptionIv
+                ? <DecryptedText ciphertext={selectedEvidence.description} ivB64={selectedEvidence.descriptionIv} vaultKey={vaultKey} />
+                : selectedEvidence.description}
             </p>
 
             {/* Cryptographic SHA-256 & AES Stamp */}
@@ -850,6 +860,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
         isOpen={isZipExportOpen}
         onClose={() => setIsZipExportOpen(false)}
         evidenceList={evidenceList}
+        vaultKey={vaultKey}
       />
 
     </div>

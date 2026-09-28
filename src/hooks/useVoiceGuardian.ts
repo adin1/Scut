@@ -41,6 +41,10 @@ export function useVoiceGuardian({ config, currentMode, onTriggerSOS }: UseVoice
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const [lastTriggerTime, setLastTriggerTime] = useState<number | null>(null);
   const [lastTriggeredKeyword, setLastTriggeredKeyword] = useState<string | null>(null);
+  // Exposed so other screens (e.g. the duress decoy) can record real ambient
+  // audio off this already-permitted stream without triggering a second,
+  // visible microphone permission prompt.
+  const [activeMediaStream, setActiveMediaStream] = useState<MediaStream | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -211,6 +215,7 @@ export function useVoiceGuardian({ config, currentMode, onTriggerSOS }: UseVoice
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop());
       }
+      setActiveMediaStream(null);
       return;
     }
 
@@ -227,6 +232,7 @@ export function useVoiceGuardian({ config, currentMode, onTriggerSOS }: UseVoice
         }
 
         mediaStreamRef.current = stream;
+        setActiveMediaStream(stream);
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
         const audioCtx = new AudioContextClass();
         audioContextRef.current = audioCtx;
@@ -267,6 +273,7 @@ export function useVoiceGuardian({ config, currentMode, onTriggerSOS }: UseVoice
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop());
       }
+      setActiveMediaStream(null);
       if (audioContextRef.current) {
         try {
           audioContextRef.current.close();
@@ -284,6 +291,7 @@ export function useVoiceGuardian({ config, currentMode, onTriggerSOS }: UseVoice
     lastTriggerTime,
     lastTriggeredKeyword,
     allKeywords,
-    simulateVoiceInput
+    simulateVoiceInput,
+    activeMediaStream
   };
 }

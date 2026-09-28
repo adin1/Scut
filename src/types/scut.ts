@@ -204,6 +204,8 @@ export interface Evidence {
   uploaderRole?: InstitutionalRole;
   isEncrypted: boolean;
   description: string;
+  /** When set, `description` holds real AES-256-GCM ciphertext (base64) sealed with this IV. */
+  descriptionIv?: string;
   tags: string[];
   mediaUrl?: string;
   duration?: string;
