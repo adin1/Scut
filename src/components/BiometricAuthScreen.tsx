@@ -225,6 +225,7 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
           onClick={onCancel}
           className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition cursor-pointer"
           title="Înapoi la Calculator (Anulare)"
+          aria-label="Înapoi la Calculator (Anulare)"
         >
           <X className="w-4 h-4" />
         </button>

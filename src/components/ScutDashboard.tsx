@@ -84,6 +84,7 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
             onClick={onQuickExit}
             className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-90 text-white flex items-center justify-center shadow-md transition cursor-pointer"
             title="Ieșire Rapidă / Închide aplicația (ESC)"
+            aria-label="Ieșire Rapidă / Închide aplicația (ESC)"
           >
             <X className="w-5 h-5 stroke-[2.5]" />
           </button>

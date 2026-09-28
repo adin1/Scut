@@ -51,6 +51,7 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'config' | 'test_lab' | 'history'>('config');
   const [newKeywordInput, setNewKeywordInput] = useState<string>('');
+  const [keywordFormError, setKeywordFormError] = useState<string>('');
   const [customPhraseToTest, setCustomPhraseToTest] = useState<string>('');
   const [testFeedback, setTestFeedback] = useState<string | null>(null);
 
@@ -72,8 +73,12 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
 
   const handleAddSecondaryKeyword = () => {
     const trimmed = newKeywordInput.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setKeywordFormError('Scrie un cuvânt sau o frază înainte de a adăuga.');
+      return;
+    }
     if (config.secondaryKeywords.includes(trimmed) || config.primaryKeyword.toLowerCase() === trimmed.toLowerCase()) {
+      setKeywordFormError('Acest cuvânt/frază este deja folosit.');
       return;
     }
     onUpdateConfig({
@@ -81,6 +86,7 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
       secondaryKeywords: [...config.secondaryKeywords, trimmed]
     });
     setNewKeywordInput('');
+    setKeywordFormError('');
   };
 
   const handleRemoveSecondaryKeyword = (kwToRemove: string) => {
@@ -304,10 +310,12 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
               <div className="flex gap-2 pt-1">
                 <input
                   type="text"
+                  aria-label="Adaugă alt cuvânt sau frază secretă"
                   placeholder="Adaugă alt cuvânt sau frază secretă..."
                   value={newKeywordInput}
-                  onChange={(e) => setNewKeywordInput(e.target.value)}
+                  onChange={(e) => { setNewKeywordInput(e.target.value); setKeywordFormError(''); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddSecondaryKeyword()}
+                  maxLength={60}
                   className="flex-1 px-3 py-1.5 bg-white border border-stone-300 rounded-xl text-xs text-slate-900 outline-none focus:border-teal-500"
                 />
                 <button
@@ -318,6 +326,9 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
                   <span>Adaugă</span>
                 </button>
               </div>
+              {keywordFormError && (
+                <p role="alert" className="text-[10px] text-rose-600 font-medium pt-1">{keywordFormError}</p>
+              )}
             </div>
 
             {/* Stealth & Action Behavior Settings */}
@@ -472,7 +483,7 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
             <div className="p-3 bg-stone-100 rounded-2xl text-[11px] text-slate-600 space-y-1">
               <span className="font-bold text-slate-900 block">💡 Cum funcționează protecția în fundal:</span>
               <p>
-                1. <strong>Calculator activ:</strong> Dacă agresorul te forțează să folosești telefonul și spui cuvântul cheie într-o conversație, SCUT nu deschide ecranul roșu, dar trimite imediat dosarul și coordonatele tale la 112.
+                1. <strong>Calculator activ:</strong> Dacă agresorul te forțează să folosești telefonul și spui cuvântul cheie într-o conversație, SCUT nu deschide ecranul roșu, ci pornește o înregistrare audio reală în fundal (dacă microfonul e permis). <strong>Nu poate suna sau transmite locația la 112 fără o acțiune vizibilă</strong> — deschide SCUT și apasă Sună 112 imediat ce e sigur.
               </p>
               <p>
                 2. <strong>Ecran blocat:</strong> Motorul de recunoaștere Web Speech rulează continuu în fundal, captând sunetul prin buffer audio securizat.

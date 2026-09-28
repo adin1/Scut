@@ -300,6 +300,7 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
                   onClick={onDismissSilentToast}
                   className="p-1 text-stone-400 hover:text-white"
                   title="Păstrează camuflajul"
+                  aria-label="Închide notificarea, păstrează camuflajul"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
