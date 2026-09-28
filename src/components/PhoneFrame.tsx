@@ -285,7 +285,7 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
                     Protocol SOS Silențios Declanșat Vocal
                   </span>
                   <span className="text-[10px] text-stone-400">
-                    Cuvânt: „{silentSosActiveToast.keyword}” • Dispecerat 112 notificat & Audio pornit
+                    Cuvânt: „{silentSosActiveToast.keyword}” • Nimic trimis automat — apasă „Vezi SOS”
                   </span>
                 </div>
               </div>

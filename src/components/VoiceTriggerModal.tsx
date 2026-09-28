@@ -333,7 +333,7 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
                       Mod Silențios & Camuflat (Zero Suspiciune)
                     </span>
                     <p className="text-[11px] text-teal-800 mt-0.5 leading-snug">
-                      La rostirea cuvântului, ecranul <strong>RĂMÂNE în Calculator / Vreme</strong> fără să sară la ecranul SOS, dar trimite imediat alerta la 112, pornește înregistrarea audio și alertează contactele în fundal.
+                      La rostirea cuvântului, ecranul <strong>RĂMÂNE în Calculator / Vreme</strong> fără să sară la ecranul SOS. Pornește înregistrarea audio reală (dacă microfonul e permis) și salvează evenimentul — dar <strong>nu poate suna sau notifica 112 fără o acțiune vizibilă a ta</strong>; deschide SCUT și apasă Sună 112 imediat ce e sigur.
                     </p>
                   </div>
                 </div>
@@ -356,24 +356,14 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
                   />
                 </label>
 
-                <label className="p-2.5 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between cursor-pointer">
-                  <span className="font-medium text-slate-800">Transmitere GPS 112</span>
-                  <input
-                    type="checkbox"
-                    checked={config.dispatch112OnTrigger}
-                    onChange={(e) => onUpdateConfig({ ...config, dispatch112OnTrigger: e.target.checked })}
-                    className="w-4 h-4 accent-teal-600 rounded"
-                  />
+                <label className="p-2.5 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-between cursor-not-allowed opacity-70" title="Nu e posibil tehnic: o pagină web nu poate suna sau transmite locația la 112 fără o acțiune vizibilă">
+                  <span className="font-medium text-slate-500">Transmitere GPS 112 (indisponibil)</span>
+                  <input type="checkbox" checked={false} disabled className="w-4 h-4 rounded" />
                 </label>
 
-                <label className="p-2.5 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between cursor-pointer">
-                  <span className="font-medium text-slate-800">SMS Camuflat Contacte</span>
-                  <input
-                    type="checkbox"
-                    checked={config.notifyContactsOnTrigger}
-                    onChange={(e) => onUpdateConfig({ ...config, notifyContactsOnTrigger: e.target.checked })}
-                    className="w-4 h-4 accent-teal-600 rounded"
-                  />
+                <label className="p-2.5 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-between cursor-not-allowed opacity-70" title="Nu e implementat încă — deschide manual ecranul SOS pentru a trimite SMS contactelor">
+                  <span className="font-medium text-slate-500">SMS Automat Contacte (indisponibil)</span>
+                  <input type="checkbox" checked={false} disabled className="w-4 h-4 rounded" />
                 </label>
               </div>
             </div>
