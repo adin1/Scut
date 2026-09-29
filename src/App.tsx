@@ -52,7 +52,19 @@ import { BiometricSettingsModal } from './components/BiometricSettingsModal';
 export default function App() {
   // App navigation state
   const [currentMode, setCurrentMode] = useState<AppMode>('phone_home');
-  
+
+  // Keeps the browser tab title camouflaged at all times — not just the
+  // on-screen content. If an abuser glances at the tab bar instead of the
+  // screen itself, a title like "SCUT" would give away the whole app
+  // regardless of how convincing the in-page decoy looks.
+  useEffect(() => {
+    const titleByMode: Partial<Record<AppMode, string>> = {
+      duress_weather: 'Vremea',
+      quick_exit_decoy: 'Google Search',
+    };
+    document.title = titleByMode[currentMode] || 'Calculator';
+  }, [currentMode]);
+
   // Data state
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>(INITIAL_EVIDENCE);
   const [contacts, setContacts] = useState<TrustedContact[]>(DEFAULT_CONTACTS);
@@ -255,6 +267,21 @@ export default function App() {
     };
     setNotifications(prev => [newNotif, ...prev]);
   };
+
+  // Nothing here is persisted (by design — the vault key must never survive
+  // a reload for security). That means a refresh or closed tab silently
+  // discards any real evidence, contacts or an unlocked vault for the rest
+  // of the session. Warn before that happens rather than losing it silently.
+  const hasUnsavedSessionData = vaultKey !== null || evidenceList.length > INITIAL_EVIDENCE.length || contacts.length > DEFAULT_CONTACTS.length;
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedSessionData) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedSessionData]);
 
   return (
     <div className="w-full min-h-screen bg-stone-950 text-stone-100 font-sans">
