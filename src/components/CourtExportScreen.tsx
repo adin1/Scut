@@ -1,22 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Scale, 
-  ArrowLeft, 
-  X, 
-  Download, 
-  FileText, 
-  ShieldCheck, 
-  CheckCircle2, 
-  FileSpreadsheet, 
-  FileCode, 
-  Printer, 
-  KeyRound, 
-  Lock, 
-  ExternalLink,
-  RefreshCw,
-  Copy,
-  Check,
-  AlertTriangle
+import {
+  Scale,
+  ArrowLeft,
+  X,
+  CheckCircle2,
+  FileSpreadsheet,
+  FileCode,
+  Printer,
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { INITIAL_EVIDENCE_ITEMS } from '../data/mockData';
@@ -35,7 +27,6 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
   evidenceList = INITIAL_EVIDENCE_ITEMS,
   vaultKey
 }) => {
-  const [selectedFormat, setSelectedFormat] = useState<'pdf_a' | 'zip' | 'json' | 'csv'>('pdf_a');
   const [recipient, setRecipient] = useState('Judecătoria Sector 1 București • Secția Civilă / OPP');
   const [isZipModalOpen, setIsZipModalOpen] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);

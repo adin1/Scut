@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CloudSun, Wind, Droplets, Compass, MapPin, Radio, AlertOctagon, RefreshCw, ArrowLeft, Mic } from 'lucide-react';
+import { CloudSun, Wind, Droplets, Compass, MapPin, AlertOctagon, ArrowLeft, Mic } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { computeSha256Hash, encryptVaultText } from '../utils/security';
 

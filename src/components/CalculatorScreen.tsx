@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Info, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Home, Info, ShieldCheck } from 'lucide-react';
 
 interface CalculatorScreenProps {
   onUnlockSuccess: () => void;

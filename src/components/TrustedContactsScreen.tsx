@@ -1,27 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  ArrowLeft, 
-  X, 
-  ShieldCheck, 
-  MessageSquare, 
-  Trash2, 
-  UserCheck, 
+import {
+  Plus,
+  ArrowLeft,
+  X,
+  MessageSquare,
+  Trash2,
   Sparkles,
   Send,
-  Radio,
   CheckCircle2,
   AlertTriangle,
   MapPin,
   BatteryCharging,
   Settings2,
   RotateCcw,
-  Eye,
   Smartphone,
   Edit2,
-  Check,
   Zap,
-  Clock
+  UserCheck
 } from 'lucide-react';
 import { TrustedContact, EmergencySmsConfig } from '../types/scut';
 
@@ -358,11 +353,12 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
               <button
                 id="btn-simulate-sos-sms"
                 onClick={startSmsSimulation}
-                className="px-2.5 py-1 bg-amber-700 hover:bg-amber-600 text-white rounded-lg font-bold flex items-center gap-1 shadow-xs transition cursor-pointer"
+                disabled={isSimulating}
+                className="px-2.5 py-1 bg-amber-700 hover:bg-amber-600 text-white rounded-lg font-bold flex items-center gap-1 shadow-xs transition cursor-pointer disabled:opacity-50"
                 title="Testează expedierea simulată de SMS"
               >
-                <Zap className="w-3 h-3" />
-                <span>Testare SMS</span>
+                <Zap className={`w-3 h-3 ${isSimulating ? 'animate-pulse' : ''}`} />
+                <span>{isSimulating ? 'Se testează...' : 'Testare SMS'}</span>
               </button>
 
               {/* Configure Global SMS Template */}

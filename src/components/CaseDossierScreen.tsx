@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  FileCheck2, 
-  ShieldCheck, 
-  ArrowLeft, 
-  X, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  UserCheck, 
-  Layers, 
-  CheckCircle2,
-  FileText
+import {
+  FileCheck2,
+  ShieldCheck,
+  ArrowLeft,
+  X,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { CASE_DOSSIER_MOCK } from '../data/mockData';
 
@@ -19,10 +15,12 @@ interface CaseDossierScreenProps {
   onQuickExit: () => void;
 }
 
-export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, onQuickExit }) => {
-  const [selectedRole, setSelectedRole] = useState<'victima' | 'politie' | 'dgaspc' | 'medic_inml' | 'psiholog' | 'avocat'>('victima');
+type DossierRole = 'victima' | 'politie' | 'dgaspc' | 'medic_inml' | 'psiholog' | 'avocat';
 
-  const roleLabels: Record<string, { label: string; desc: string; badge: string }> = {
+export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, onQuickExit }) => {
+  const [selectedRole, setSelectedRole] = useState<DossierRole>('victima');
+
+  const roleLabels: Record<DossierRole, { label: string; desc: string; badge: string }> = {
     victima: { label: 'Victimă (Titular Dosar)', desc: 'Acces complet la datele proprii și stadiul măsurilor de protecție.', badge: 'bg-emerald-100 text-emerald-800' },
     politie: { label: 'Poliția Română (112 / Secție)', desc: 'Acces la identitate, risc, adrese, istoric agresiuni și emitere OPP.', badge: 'bg-blue-100 text-blue-800' },
     dgaspc: { label: 'DGASPC (Asistență Socială)', desc: 'Acces la situația minorilor, alocare adăpost și pachete de reintegrare.', badge: 'bg-indigo-100 text-indigo-800' },
@@ -76,10 +74,10 @@ export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, on
             <span className="text-[10px] text-teal-700 font-medium">Alege un rol</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
-            {Object.keys(roleLabels).map(role => (
+            {(Object.keys(roleLabels) as DossierRole[]).map(role => (
               <button
                 key={role}
-                onClick={() => setSelectedRole(role as any)}
+                onClick={() => setSelectedRole(role)}
                 className={`py-1.5 px-2 rounded-xl text-[10px] font-bold border transition text-center truncate ${
                   selectedRole === role
                     ? 'bg-slate-900 text-white border-slate-900 shadow-xs'

@@ -1,22 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Mic, 
-  MicOff, 
-  ShieldAlert, 
-  Radio, 
-  Volume2, 
-  Plus, 
-  Trash2, 
-  Check, 
-  X, 
-  Sparkles, 
-  HelpCircle, 
-  Activity, 
-  Lock, 
-  Sliders, 
+import {
+  Mic,
+  Volume2,
+  Plus,
+  Check,
+  X,
+  Sliders,
   Clock,
   EyeOff,
-  AlertTriangle,
   Play
 } from 'lucide-react';
 import { VoiceTriggerConfig, VoiceTriggerEvent } from '../types/scut';

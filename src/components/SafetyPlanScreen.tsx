@@ -10,11 +10,9 @@ import {
   Baby, 
   Dog, 
   Phone, 
-  Key, 
+  Key,
   EyeOff,
   Sparkles,
-  Download,
-  AlertCircle,
   Lock
 } from 'lucide-react';
 import { SafetyPlan } from '../types/scut';

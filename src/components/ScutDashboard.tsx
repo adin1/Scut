@@ -1,24 +1,23 @@
 import React from 'react';
-import { 
-  AlertOctagon, 
-  FolderLock, 
-  HeartHandshake, 
-  MapPin, 
-  PhoneCall, 
-  FileCheck2, 
-  X, 
-  Lock, 
-  Info, 
-  ChevronRight, 
-  Mic, 
-  ScanFace, 
-  Fingerprint, 
-  ShieldAlert, 
-  ShieldCheck, 
-  KeyRound, 
-  Scale, 
-  Building2,
-  Sparkles
+import {
+  AlertOctagon,
+  FolderLock,
+  HeartHandshake,
+  MapPin,
+  PhoneCall,
+  FileCheck2,
+  X,
+  Lock,
+  Info,
+  ChevronRight,
+  Mic,
+  ScanFace,
+  Fingerprint,
+  ShieldAlert,
+  ShieldCheck,
+  KeyRound,
+  Scale,
+  Building2
 } from 'lucide-react';
 import { AppMode, BiometricConfig } from '../types/scut';
 
@@ -299,6 +298,40 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
             <div className="truncate">
               <span className="font-bold text-slate-900 block text-[10px]">Contacte Încredere</span>
               <span className="text-[9px] text-slate-500">{contactsCount} active • cod secret</span>
+            </div>
+          </button>
+        </div>
+        {/* 6. Voice Trigger & Biometric Settings */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            id="btn-open-voice-settings"
+            onClick={onOpenVoiceSettings}
+            className="p-2 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl text-left flex items-center gap-2 text-xs transition cursor-pointer"
+          >
+            <Mic className={`w-4 h-4 shrink-0 ${voiceTriggerEnabled ? 'text-emerald-600' : 'text-slate-400'}`} />
+            <div className="truncate">
+              <span className="font-bold text-slate-900 block text-[10px]">Cuvânt Cheie Vocal</span>
+              <span className="text-[9px] text-slate-500 truncate">
+                {voiceTriggerEnabled ? `Activ • „${voicePrimaryKeyword}”` : 'Dezactivat'}
+              </span>
+            </div>
+          </button>
+
+          <button
+            id="btn-open-biometric-settings"
+            onClick={onOpenBiometricSettings}
+            className="p-2 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl text-left flex items-center gap-2 text-xs transition cursor-pointer"
+          >
+            {biometricConfig.preferredMethod === 'face_id' ? (
+              <ScanFace className={`w-4 h-4 shrink-0 ${biometricConfig.enabled ? 'text-indigo-600' : 'text-slate-400'}`} />
+            ) : (
+              <Fingerprint className={`w-4 h-4 shrink-0 ${biometricConfig.enabled ? 'text-indigo-600' : 'text-slate-400'}`} />
+            )}
+            <div className="truncate">
+              <span className="font-bold text-slate-900 block text-[10px]">Autentificare Biometrică</span>
+              <span className="text-[9px] text-slate-500 truncate">
+                {biometricConfig.enabled ? 'Activă' : 'Dezactivată'}
+              </span>
             </div>
           </button>
         </div>

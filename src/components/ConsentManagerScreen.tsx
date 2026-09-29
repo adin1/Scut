@@ -1,20 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  KeyRound, 
-  ShieldCheck, 
-  ArrowLeft, 
-  X, 
-  Eye, 
-  UserX, 
-  Lock, 
-  FileText, 
-  Clock, 
-  Building2, 
-  CheckCircle2, 
-  AlertTriangle,
-  History,
-  ShieldAlert,
-  Plus
+import {
+  KeyRound,
+  ArrowLeft,
+  X,
+  UserX,
+  History
 } from 'lucide-react';
 import { Consent, AuditEvent } from '../types/scut';
 import { INITIAL_CONSENTS, INITIAL_AUDIT_LOGS } from '../data/mockData';

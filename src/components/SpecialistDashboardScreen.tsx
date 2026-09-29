@@ -1,30 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  ShieldCheck, 
-  ArrowLeft, 
-  X, 
-  AlertTriangle, 
-  FileText, 
-  Scale, 
-  HeartPulse, 
-  Baby, 
-  Clock, 
-  CheckCircle2, 
-  Lock, 
-  Eye, 
-  Flame, 
-  UserCheck, 
-  Radio, 
-  Activity,
-  Layers,
+import {
+  Building2,
+  ArrowLeft,
+  X,
+  Baby,
+  CheckCircle2,
+  Lock,
+  Flame,
+  Radio,
   ChevronRight,
-  TrendingUp,
-  BarChart3,
-  Search,
-  Filter
+  BarChart3
 } from 'lucide-react';
-import { InstitutionalRole, Case, ProtectionOrder, Child, CaseStatus, PilotRegionConfig } from '../types/scut';
+import { InstitutionalRole, CaseStatus } from '../types/scut';
 import { 
   INITIAL_CASES, 
   INITIAL_PROTECTION_ORDERS, 
@@ -182,16 +169,16 @@ export const SpecialistDashboardScreen: React.FC<SpecialistDashboardScreenProps>
           <div className="space-y-2">
             {/* Status Filter Scrollable Pills */}
             <div className="flex gap-1 overflow-x-auto pb-1 text-[9px] no-scrollbar">
-              {[
+              {([
                 { id: 'all', label: 'Toate' },
                 { id: 'urgent', label: '🚨 Urgente' },
                 { id: 'expiring_orders', label: '⚠️ Expiră Ordine' },
                 { id: 'in_progress', label: 'În lucru' },
                 { id: 'awaiting_docs', label: 'Așteaptă doc' }
-              ].map(f => (
+              ] as const).map(f => (
                 <button
                   key={f.id}
-                  onClick={() => setCaseFilterStatus(f.id as any)}
+                  onClick={() => setCaseFilterStatus(f.id)}
                   className={`px-2 py-1 rounded-lg shrink-0 font-bold transition cursor-pointer ${
                     caseFilterStatus === f.id ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700 hover:bg-stone-300'
                   }`}

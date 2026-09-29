@@ -1,24 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  MapPin, 
-  Phone, 
-  ArrowLeft, 
-  X, 
-  ShieldCheck, 
-  Navigation, 
-  Building2, 
-  HeartHandshake, 
+import {
+  MapPin,
+  Phone,
+  ArrowLeft,
+  X,
+  ShieldCheck,
+  Navigation,
+  Building2,
+  HeartHandshake,
   Cross,
-  CheckCircle2,
   Clock,
   Brain,
   Search,
-  SlidersHorizontal,
   RotateCcw,
-  Sparkles,
   Check,
-  Info,
-  ChevronRight
+  Info
 } from 'lucide-react';
 import { ShelterLocation } from '../types/scut';
 import { SHELTERS_LIST } from '../data/mockData';

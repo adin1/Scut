@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Wifi, 
-  Battery, 
-  Shield, 
-  AlertTriangle, 
-  FileText, 
-  Smartphone, 
-  Maximize2, 
-  Minimize2, 
-  Mic, 
-  MicOff, 
-  Radio, 
-  CheckCircle, 
-  X, 
-  Volume2,
+import {
+  Wifi,
+  Battery,
+  Shield,
+  AlertTriangle,
+  FileText,
+  Smartphone,
+  Maximize2,
+  Minimize2,
+  Mic,
+  MicOff,
+  Radio,
+  X,
   ScanFace,
   Fingerprint
 } from 'lucide-react';
@@ -130,12 +128,18 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
             }`}
           >
             <div className="relative flex items-center justify-center">
-              <Mic className={`w-3.5 h-3.5 ${voiceTriggerEnabled ? 'text-rose-400' : 'text-stone-500'}`} />
-              {voiceTriggerEnabled && (
+              {voiceTriggerEnabled && !isVoiceListening ? (
+                <MicOff className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Mic className={`w-3.5 h-3.5 ${voiceTriggerEnabled ? 'text-rose-400' : 'text-stone-500'}`} />
+              )}
+              {voiceTriggerEnabled && isVoiceListening && (
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
               )}
             </div>
-            <span className="font-mono">Voice SOS: {voiceTriggerEnabled ? `„${voicePrimaryKeyword}”` : 'Oprit'}</span>
+            <span className="font-mono">
+              Voice SOS: {voiceTriggerEnabled ? (isVoiceListening ? `„${voicePrimaryKeyword}”` : 'Microfon indisponibil') : 'Oprit'}
+            </span>
           </button>
 
           {/* Biometric 2FA Gate Button */}

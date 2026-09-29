@@ -1,30 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  ShieldAlert, 
-  ShieldCheck, 
-  ArrowLeft, 
-  X, 
-  MapPin, 
-  Smartphone, 
-  Radio, 
-  KeyRound, 
-  CloudOff, 
-  CheckCircle2, 
+import {
+  ShieldAlert,
+  ShieldCheck,
+  ArrowLeft,
+  X,
+  MapPin,
+  Smartphone,
+  Radio,
+  KeyRound,
+  CloudOff,
+  CheckCircle2,
   AlertTriangle,
-  HelpCircle,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
   RefreshCw,
   Search,
-  Eye,
-  EyeOff,
   Plus,
-  Lock,
   Sparkles,
-  Layers,
-  BatteryCharging,
-  Sliders,
   Check
 } from 'lucide-react';
 import { SafetyCheckItem } from '../types/scut';
@@ -185,7 +177,10 @@ export const SafetyCheckScreen: React.FC<SafetyCheckScreenProps> = ({ onBack, on
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-800">Scor Audit Siguranță</h3>
-                <p className="text-[10px] text-slate-500">{safeCount} din {items.length} verificări securizate</p>
+                <p className="text-[10px] text-slate-500">
+                  {safeCount} din {items.length} verificări securizate
+                  {actionCount > 0 && <span className="text-rose-600 font-semibold"> • {actionCount} necesită acțiune</span>}
+                </p>
               </div>
             </div>
 

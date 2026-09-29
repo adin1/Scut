@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  FolderLock, 
-  Download, 
-  KeyRound, 
-  ShieldCheck, 
-  Lock, 
-  FileText, 
-  Eye, 
-  EyeOff, 
-  Sparkles, 
-  Check, 
-  Copy, 
-  AlertCircle, 
-  X, 
-  FileArchive, 
-  UserCheck, 
-  Scale, 
-  CheckCircle2, 
+import {
+  Download,
+  KeyRound,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Check,
+  Copy,
+  AlertCircle,
+  X,
+  FileArchive,
+  Scale,
+  CheckCircle2,
   RefreshCw,
   Share2
 } from 'lucide-react';
@@ -42,7 +38,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [recipientRole, setRecipientRole] = useState<'lawyer' | 'court' | 'police' | 'inml'>('lawyer');
   const [recipientName, setRecipientName] = useState('Avocat Reprezentant Legal (Barou)');
-  const [caseReference, setCaseReference] = useState('Dosar OPP - Art. 217/2003');
+  const caseReference = 'Dosar OPP - Art. 217/2003';
   
   // Export process state
   const [isExporting, setIsExporting] = useState(false);
@@ -340,17 +336,17 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
               </label>
 
               <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                {[
+                {([
                   { id: 'lawyer', label: '⚖️ Avocat Barou', defaultName: 'Avocat Barou Ales / Oficiu' },
                   { id: 'court', label: '🏛️ Instanță Judecată', defaultName: 'Judecătoria Sector 1 / OPP' },
                   { id: 'police', label: '🛡️ Poliție / Parchet', defaultName: 'Secția de Poliție competentă' },
                   { id: 'inml', label: '🏥 Medicină Legală', defaultName: 'INML Mina Minovici' }
-                ].map(item => (
+                ] as const).map(item => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      setRecipientRole(item.id as any);
+                      setRecipientRole(item.id);
                       setRecipientName(item.defaultName);
                     }}
                     className={`p-1.5 rounded-xl border text-left font-semibold transition cursor-pointer ${

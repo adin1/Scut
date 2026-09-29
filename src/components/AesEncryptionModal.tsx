@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Lock, 
-  Unlock, 
-  ShieldCheck, 
-  Cpu, 
-  Key, 
-  Hash, 
-  FileCheck, 
+import {
+  Lock,
+  Unlock,
+  ShieldCheck,
+  Cpu,
   Sparkles,
   Zap,
   CheckCircle2,
