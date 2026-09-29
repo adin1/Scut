@@ -1,25 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   PhoneCall,
   Radio,
   MapPin,
   ShieldAlert,
-  Clock,
   CheckCircle2,
   ArrowLeft,
   X,
   Mic,
   AlertTriangle,
   Volume2,
-  MessageSquare,
   Send,
-  Sparkles,
-  Smartphone,
   LocateFixed
 } from 'lucide-react';
-import { TrustedContact, EmergencySmsConfig } from '../types/scut';
+import { TrustedContact, EmergencySmsConfig, EvidenceItem } from '../types/scut';
 import { CLUJ_RESOURCE_PROVIDERS } from '../data/cluj';
-import { distanceMeters } from '../utils/security';
+import { distanceMeters, computeSha256Hash, encryptVaultText } from '../utils/security';
 
 const NEAREST_KNOWN_POLICE = CLUJ_RESOURCE_PROVIDERS.find(r => r.id === 'cj-ipj-cluj')!;
 
@@ -44,21 +40,35 @@ interface SosAlertScreenProps {
   voiceTriggeredKeyword?: string | null;
   contacts?: TrustedContact[];
   emergencySmsConfig?: EmergencySmsConfig;
+  /** Already-permitted mic stream from the voice-guardian listener, if it's running — reused to record real ambient audio without a second permission prompt. */
+  activeMediaStream?: MediaStream | null;
+  /** Session vault key, if the victim already unlocked the evidence vault — used to encrypt the recording. Recording still proceeds without it, just unencrypted. */
+  vaultKey?: CryptoKey | null;
+  onSaveEvidence?: (item: EvidenceItem) => void;
 }
 
-export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({ 
-  onBack, 
-  onQuickExit, 
+export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
+  onBack,
+  onQuickExit,
   voiceTriggeredKeyword,
   contacts = [],
-  emergencySmsConfig
+  emergencySmsConfig,
+  activeMediaStream = null,
+  vaultKey = null,
+  onSaveEvidence
 }) => {
   const [sosSent, setSosSent] = useState<boolean>(Boolean(voiceTriggeredKeyword));
   const [silentAlertSent, setSilentAlertSent] = useState<boolean>(false);
-  const [audioRecording, setAudioRecording] = useState<boolean>(Boolean(voiceTriggeredKeyword));
+  // 'external' means a real recording was already started upstream (voice-trigger flow in App.tsx); this screen doesn't own that recorder.
+  const [recorderState, setRecorderState] = useState<'idle' | 'external' | 'recording' | 'saved' | 'unavailable'>(
+    voiceTriggeredKeyword ? 'external' : 'idle'
+  );
   const [callModalOpen, setCallModalOpen] = useState<boolean>(false);
   const [callInitiated, setCallInitiated] = useState<boolean>(false);
   const [sentSmsContactIds, setSentSmsContactIds] = useState<string[]>([]);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const savedRef = useRef(false);
 
   // Real device GPS — no more hardcoded coordinates. Requests permission once an
   // alert is active, since that's the moment the location actually matters.
@@ -92,15 +102,69 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
     ? Math.round(distanceMeters(coords, NEAREST_KNOWN_POLICE.coordinates))
     : null;
 
-  const handleTriggerSos = () => {
-    setSosSent(true);
-    setAudioRecording(true);
+  const finalizeRecording = async () => {
+    if (savedRef.current || chunksRef.current.length === 0) return;
+    savedRef.current = true;
+    const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
+    const arrayBuffer = await blob.arrayBuffer();
+    const sha256Hash = await computeSha256Hash(arrayBuffer);
+    const plainDescription = 'Înregistrare audio ambientală reală, pornită manual din ecranul SOS (Alertă Silențioasă).';
+
+    let description = plainDescription;
+    let descriptionIv: string | undefined;
+    if (vaultKey) {
+      const sealed = await encryptVaultText(vaultKey, plainDescription);
+      description = sealed.ciphertextB64;
+      descriptionIv = sealed.ivB64;
+    }
+
+    onSaveEvidence?.({
+      id: `ev-sos-audio-${Date.now()}`,
+      title: 'Înregistrare Audio — Alertă Silențioasă SOS',
+      category: 'audio',
+      date: new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      timestamp: Date.now(),
+      description,
+      descriptionIv,
+      tags: ['SOS', 'Audio Ambiental'],
+      fileSize: `${(blob.size / (1024 * 1024)).toFixed(2)} MB`,
+      sha256Hash,
+      isEncrypted: Boolean(vaultKey),
+      tamperProofVerified: true
+    });
+    setRecorderState('saved');
   };
 
   const handleTriggerSilentAlert = () => {
     setSilentAlertSent(true);
-    setAudioRecording(true);
+    // A voice-triggered alert already has a real recording running upstream (App.tsx); don't start a second one.
+    if (recorderState === 'external' || recorderState === 'recording') return;
+    if (!activeMediaStream || !onSaveEvidence || typeof MediaRecorder === 'undefined') {
+      setRecorderState('unavailable');
+      return;
+    }
+    try {
+      const recorder = new MediaRecorder(activeMediaStream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      savedRef.current = false;
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = () => { finalizeRecording(); };
+      recorder.start();
+      setRecorderState('recording');
+    } catch {
+      setRecorderState('unavailable');
+    }
   };
+
+  // Stop any recording this screen owns when the victim navigates away.
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
+    };
+  }, []);
 
   const handleStart112Call = () => {
     setCallModalOpen(false);
@@ -284,15 +348,37 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
           </div>
         )}
 
-        {/* Ambient Audio Stream Active Indicator */}
-        {audioRecording && (
+        {/* Ambient Audio Stream Indicator — reflects the real MediaRecorder state, not a fake claim */}
+        {(recorderState === 'recording' || recorderState === 'external') && (
           <div className="bg-rose-50 border border-rose-300 rounded-xl p-2 flex items-center justify-between text-xs text-rose-900">
             <div className="flex items-center gap-2">
               <Mic className="w-4 h-4 text-rose-600 animate-pulse" />
               <span className="text-[11px] font-semibold">Înregistrare ambientală probă activă</span>
             </div>
             <span className="text-[9px] font-mono bg-rose-200 text-rose-900 px-1.5 py-0.5 rounded">
-              Salvat direct în Vault
+              {vaultKey ? 'Se salvează în Vault (criptat)' : 'Se salvează în Vault'}
+            </span>
+          </div>
+        )}
+        {recorderState === 'saved' && (
+          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2 flex items-center justify-between text-xs text-emerald-900">
+            <div className="flex items-center gap-2">
+              <Mic className="w-4 h-4 text-emerald-600" />
+              <span className="text-[11px] font-semibold">Înregistrare ambientală salvată</span>
+            </div>
+            <span className="text-[9px] font-mono bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded">
+              {vaultKey ? 'În Vault (criptat)' : 'În Vault'}
+            </span>
+          </div>
+        )}
+        {recorderState === 'unavailable' && silentAlertSent && (
+          <div className="bg-stone-100 border border-stone-300 rounded-xl p-2 flex items-center justify-between text-xs text-stone-700">
+            <div className="flex items-center gap-2">
+              <Mic className="w-4 h-4 text-stone-500" />
+              <span className="text-[11px] font-semibold">Înregistrare audio indisponibilă</span>
+            </div>
+            <span className="text-[9px] font-mono bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded">
+              Microfon nepermis anterior
             </span>
           </div>
         )}

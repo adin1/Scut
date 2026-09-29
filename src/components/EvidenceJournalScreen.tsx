@@ -1,30 +1,21 @@
 import React, { useState, useRef } from 'react';
-import { 
-  FolderLock, 
-  Plus, 
-  Camera, 
-  Mic, 
-  FileUp, 
-  FileText, 
-  ArrowLeft, 
-  X, 
-  ShieldCheck, 
-  Search, 
-  Play, 
-  Square, 
-  Check, 
-  Download,
+import {
+  FolderLock,
+  Plus,
+  Camera,
+  Mic,
+  FileUp,
+  FileText,
+  ArrowLeft,
+  X,
+  ShieldCheck,
+  Play,
+  Square,
   AlertCircle,
   Lock,
-  Sparkles,
   UploadCloud,
-  File,
-  Shield,
-  RotateCcw,
   Zap,
-  CheckCircle2,
-  FileArchive,
-  KeyRound
+  FileArchive
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { computeSha256Hash, formatTime, encryptVaultText } from '../utils/security';
@@ -69,7 +60,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   // Document upload state
   const [docTitle, setDocTitle] = useState('');
   const [docDescription, setDocDescription] = useState('');
-  const [docTags, setDocTags] = useState('Document oficial, INML, Probă Judiciară');
+  const docTags = 'Document oficial, INML, Probă Judiciară';
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [uploadedFileSize, setUploadedFileSize] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -316,16 +307,16 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
 
         {/* Filter Categories Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs no-scrollbar">
-          {[
+          {([
             { id: 'all', label: 'Toate' },
             { id: 'photo', label: '📷 Foto' },
             { id: 'audio', label: '🎙️ Audio' },
             { id: 'document', label: '📄 Documente' },
             { id: 'note', label: '📝 Notițe' }
-          ].map(tab => (
+          ] as const).map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`px-3 py-1 rounded-full whitespace-nowrap text-[11px] font-semibold transition cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-slate-900 text-white shadow-xs'

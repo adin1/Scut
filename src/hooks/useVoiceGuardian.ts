@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { VoiceTriggerConfig, AppMode } from '../types/scut';
+import { VoiceTriggerConfig } from '../types/scut';
 
 // Helper to normalize strings for robust keyword matching (handles diacritics, punctuation, spacing)
 export function normalizeSpeechText(text: string): string {
@@ -29,11 +29,10 @@ export function matchKeywordInTranscript(transcript: string, keywords: string[])
 
 interface UseVoiceGuardianProps {
   config: VoiceTriggerConfig;
-  currentMode: AppMode;
   onTriggerSOS: (keyword: string, transcript: string, isSilent: boolean) => void;
 }
 
-export function useVoiceGuardian({ config, currentMode, onTriggerSOS }: UseVoiceGuardianProps) {
+export function useVoiceGuardian({ config, onTriggerSOS }: UseVoiceGuardianProps) {
   const [isListening, setIsListening] = useState<boolean>(false);
   const [micPermissionState, setMicPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
   const [latestTranscript, setLatestTranscript] = useState<string>('');

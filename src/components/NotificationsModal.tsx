@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, ShieldCheck, X, Sparkles, Send, CheckCircle2 } from 'lucide-react';
+import { Bell, ShieldCheck, X, Send } from 'lucide-react';
 import { DisguisedNotification } from '../types/scut';
 import { DISGUISED_NOTIFICATIONS_CATALOG } from '../data/mockData';
 

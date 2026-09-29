@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  ScanFace, 
-  Fingerprint, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Lock, 
-  X, 
-  Check, 
-  Sliders, 
-  Sparkles, 
-  AlertTriangle, 
-  Cpu, 
-  Vibrate, 
-  Eye, 
-  KeyRound,
-  RotateCcw,
-  Zap
+import {
+  ScanFace,
+  Fingerprint,
+  X,
+  Check,
+  AlertTriangle,
+  Vibrate,
+  Zap,
+  Eye
 } from 'lucide-react';
-import { BiometricConfig, BiometricMethod } from '../types/scut';
+import { BiometricConfig } from '../types/scut';
 
 interface BiometricSettingsModalProps {
   isOpen: boolean;

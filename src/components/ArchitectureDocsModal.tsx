@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  ShieldCheck, 
-  Layers, 
-  Lock, 
-  Radio, 
-  HeartHandshake, 
-  X, 
-  CheckCircle2, 
-  Key, 
-  Share2, 
-  AlertTriangle,
-  FileCheck2,
-  Palette
+import {
+  X,
+  Palette,
+  ShieldCheck
 } from 'lucide-react';
 
 interface ArchitectureDocsModalProps {
@@ -42,6 +32,7 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
+              aria-label="Închide"
               className="p-1.5 rounded-full hover:bg-stone-100 text-stone-500 cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -51,15 +42,15 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
 
         {/* Phase Tabs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-stone-100 p-1.5 rounded-2xl">
-          {[
+          {([
             { id: 'phase1', label: 'Faza 1: Camuflaj & Deblocare' },
             { id: 'phase2', label: 'Faza 2: Siguranță Critică' },
             { id: 'phase3', label: 'Faza 3: Arhitectură & Stakeholders' },
             { id: 'phase4', label: 'Faza 4: Prototipare Vizuală' },
-          ].map(tab => (
+          ] as const).map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`py-2 px-2.5 rounded-xl text-xs font-bold transition text-center truncate ${
                 activeTab === tab.id
                   ? 'bg-slate-900 text-white shadow-sm'

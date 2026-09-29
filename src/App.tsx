@@ -231,7 +231,6 @@ export default function App() {
     activeMediaStream
   } = useVoiceGuardian({
     config: voiceConfig,
-    currentMode: currentMode,
     onTriggerSOS: handleVoiceSOS
   });
 
@@ -380,6 +379,9 @@ export default function App() {
             voiceTriggeredKeyword={voiceTriggeredKeyword}
             contacts={contacts}
             emergencySmsConfig={emergencySmsConfig}
+            activeMediaStream={activeMediaStream}
+            vaultKey={vaultKey}
+            onSaveEvidence={handleAddEvidence}
           />
         )}
 

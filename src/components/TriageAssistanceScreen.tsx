@@ -1,29 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  HeartPulse, 
-  Home, 
-  Scale, 
-  MessageSquare, 
-  ArrowLeft, 
-  X, 
-  Phone, 
-  Send, 
-  ShieldCheck, 
-  CheckCircle2, 
+import {
+  HeartPulse,
+  Home,
+  Scale,
+  MessageSquare,
+  ArrowLeft,
+  X,
+  Phone,
+  Send,
+  ShieldCheck,
+  CheckCircle2,
   Sparkles,
-  AlertTriangle,
-  FileText,
   Lock,
-  ChevronRight,
   RefreshCw,
   Zap,
-  HelpCircle,
-  Stethoscope,
   Building2,
-  Share2,
   Trash2
 } from 'lucide-react';
-import { TriageCategory, ChatMessage } from '../types/scut';
+import { ChatMessage } from '../types/scut';
 
 interface TriageAssistanceScreenProps {
   onBack: () => void;
@@ -344,15 +338,15 @@ export const TriageAssistanceScreen: React.FC<TriageAssistanceScreenProps> = ({
                   Răspunsuri Rapide & Întrebări Frecvente:
                 </span>
                 <div className="flex gap-1 text-[9px]">
-                  {[
+                  {([
                     { id: 'all', label: 'Toate' },
                     { id: 'urgent', label: '🚨 Urgențe' },
                     { id: 'medical', label: '🩹 Medical' },
                     { id: 'legal', label: '⚖️ Juridic' },
-                  ].map(f => (
+                  ] as const).map(f => (
                     <button
                       key={f.id}
-                      onClick={() => setSelectedQuickFilter(f.id as any)}
+                      onClick={() => setSelectedQuickFilter(f.id)}
                       className={`px-1.5 py-0.5 rounded-md transition cursor-pointer ${
                         selectedQuickFilter === f.id
                           ? 'bg-slate-800 text-white font-bold'

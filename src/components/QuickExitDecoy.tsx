@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Globe, RefreshCw, Shield, ArrowLeft } from 'lucide-react';
+import { Search, Globe } from 'lucide-react';
 
 interface QuickExitDecoyProps {
   onReturnToCalculator: () => void;

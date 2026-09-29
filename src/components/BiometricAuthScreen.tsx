@@ -1,21 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ScanFace, 
-  Fingerprint, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Lock, 
-  Unlock, 
-  AlertTriangle, 
-  X, 
-  RotateCcw, 
-  Check, 
-  Camera, 
-  Cpu, 
-  Zap, 
-  KeyRound,
-  Eye,
-  Sparkles
+import {
+  ScanFace,
+  Fingerprint,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  X,
+  RotateCcw,
+  Check,
+  Camera,
+  Cpu
 } from 'lucide-react';
 import { BiometricConfig, BiometricMethod } from '../types/scut';
 
