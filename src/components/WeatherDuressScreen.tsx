@@ -21,7 +21,10 @@ export const WeatherDuressScreen: React.FC<WeatherDuressScreenProps> = ({
   onSaveEvidence
 }) => {
   const [audioRecordingSeconds, setAudioRecordingSeconds] = useState<number>(60);
-  const [showAuditorTelemetry, setShowAuditorTelemetry] = useState<boolean>(true);
+  // Defaults to hidden: this is the exact moment someone may be forced to unlock under
+  // duress, so the screen must show nothing but an innocuous weather app by default —
+  // the victim can reveal the real telemetry herself once she's alone, not before.
+  const [showAuditorTelemetry, setShowAuditorTelemetry] = useState<boolean>(false);
   const [recorderState, setRecorderState] = useState<'unavailable' | 'recording' | 'saved'>('unavailable');
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);

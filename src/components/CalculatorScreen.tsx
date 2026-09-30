@@ -17,7 +17,9 @@ export const CalculatorScreen: React.FC<CalculatorScreenProps> = ({
   const [operation, setOperation] = useState<string | null>(null);
   const [waitingForOperand, setWaitingForOperand] = useState<boolean>(false);
   const [pinBuffer, setPinBuffer] = useState<string>('');
-  const [showHelperPill, setShowHelperPill] = useState<boolean>(true);
+  // Defaults to hidden: this panel spells out the real PIN and duress PIN in plain text,
+  // so a real phone must never show it on first load — only a reviewer/demo user opts in.
+  const [showHelperPill, setShowHelperPill] = useState<boolean>(false);
 
   // Standard Secret PINs
   const MASTER_PIN = '1234';
