@@ -132,7 +132,6 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       fileSize: `${((recordSeconds || 12) * 0.08).toFixed(1)} MB`,
       duration: formatTime(recordSeconds || 12),
       sha256Hash: await computeSha256Hash(`audio-${Date.now()}`),
-      location: 'Locație Securizată (44.4378, 26.0946)',
       isEncrypted: true,
       tamperProofVerified: true
     };
@@ -153,7 +152,6 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       fileSize: '3.1 MB',
       mediaUrl: 'https://images.unsplash.com/photo-1584467735815-f778f274e296?auto=format&fit=crop&w=600&q=80',
       sha256Hash: await computeSha256Hash(`photo-${Date.now()}`),
-      location: 'București (44.4378, 26.0946)',
       isEncrypted: true,
       tamperProofVerified: true
     };

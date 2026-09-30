@@ -36,7 +36,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {/* Mini Weather Widget */}
         <div className="mt-3 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/15 flex items-center gap-2 text-xs text-slate-200">
           <CloudSun className="w-4 h-4 text-amber-300" />
-          <span>București • 24°C Însorit</span>
+          <span>Cluj-Napoca • 24°C Însorit</span>
         </div>
 
         {/* Camouflaged Lockscreen Notification Banner */}

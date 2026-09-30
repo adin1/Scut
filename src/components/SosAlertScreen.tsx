@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   PhoneCall,
   Radio,
@@ -17,7 +17,9 @@ import { TrustedContact, EmergencySmsConfig, EvidenceItem } from '../types/scut'
 import { CLUJ_RESOURCE_PROVIDERS } from '../data/cluj';
 import { distanceMeters, computeSha256Hash, encryptVaultText } from '../utils/security';
 
-const NEAREST_KNOWN_POLICE = CLUJ_RESOURCE_PROVIDERS.find(r => r.id === 'cj-ipj-cluj')!;
+// Toate secțiile/unitățile de poliție reale din Cluj-Napoca — folosite pentru a găsi
+// dinamic cea mai apropiată secție de utilizator, nu doar sediul central IPJ Cluj.
+const CLUJ_POLICE_STATIONS = CLUJ_RESOURCE_PROVIDERS.filter(r => r.type === 'police');
 
 function buildSosSmsBody(contact: TrustedContact, coords: { lat: number; lng: number } | null): string {
   if (contact.smsMode === 'direct') {
@@ -98,8 +100,18 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
     );
   }, [isAlertActivePreGeo, geoStatus]);
 
-  const distanceToNearestKnownStation = coords
-    ? Math.round(distanceMeters(coords, NEAREST_KNOWN_POLICE.coordinates))
+  const nearestStation = useMemo(() => {
+    if (CLUJ_POLICE_STATIONS.length === 0) return null;
+    if (!coords) return CLUJ_POLICE_STATIONS[0];
+    return CLUJ_POLICE_STATIONS.reduce((closest, station) => {
+      const d = distanceMeters(coords, station.coordinates);
+      const closestD = distanceMeters(coords, closest.coordinates);
+      return d < closestD ? station : closest;
+    }, CLUJ_POLICE_STATIONS[0]);
+  }, [coords]);
+
+  const distanceToNearestKnownStation = coords && nearestStation
+    ? Math.round(distanceMeters(coords, nearestStation.coordinates))
     : null;
 
   const finalizeRecording = async () => {
@@ -268,13 +280,15 @@ export const SosAlertScreen: React.FC<SosAlertScreenProps> = ({
           </div>
 
           {/* Nearest Verified Police Station distance badge */}
-          <div className="z-10 self-start">
-            <span className="text-[9px] bg-slate-900/85 text-slate-100 px-2 py-0.5 rounded shadow-xs">
-              {distanceToNearestKnownStation !== null
-                ? <>{NEAREST_KNOWN_POLICE.name}: <strong>{(distanceToNearestKnownStation / 1000).toFixed(1)} km</strong> distanță (linie dreaptă)</>
-                : `Cea mai apropiată secție verificată: ${NEAREST_KNOWN_POLICE.name} — activează locația pentru distanță`}
-            </span>
-          </div>
+          {nearestStation && (
+            <div className="z-10 self-start">
+              <span className="text-[9px] bg-slate-900/85 text-slate-100 px-2 py-0.5 rounded shadow-xs">
+                {distanceToNearestKnownStation !== null
+                  ? <>{nearestStation.name}: <strong>{(distanceToNearestKnownStation / 1000).toFixed(1)} km</strong> distanță (linie dreaptă)</>
+                  : `Cea mai apropiată secție verificată: ${nearestStation.name} — activează locația pentru distanță`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Voice Trigger Detected Banner */}

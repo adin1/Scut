@@ -387,6 +387,8 @@ export interface ResourceProvider {
   name: string;
   type: 'shelter' | 'police' | 'hospital' | 'dgaspc' | 'ngo' | 'court' | 'child_service';
   address: string;
+  /** Cartier/zonă deservită (ex: Mărăști, Gheorgheni) — utilă mai ales pentru secțiile de poliție. */
+  district?: string;
   city: string;
   county: string;
   phone: string;
@@ -396,6 +398,8 @@ export interface ResourceProvider {
   schedule?: string;
   services?: string[];
   coordinates: { lat: number; lng: number };
+  /** Sursa coordonatelor, dacă nu au fost publicate oficial de instituție (ex: geocodate din adresa oficială). */
+  coordinatesSource?: string;
   capacityStatus?: 'available' | 'limited' | 'confidential';
   eligibility: string;
   description: string;
