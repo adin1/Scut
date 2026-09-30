@@ -520,7 +520,9 @@ export const VoiceTriggerModal: React.FC<VoiceTriggerModalProps> = ({
 
                     <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
                       <span>Stare telefon: <strong className="text-slate-800">{evt.modeAtTrigger}</strong></span>
-                      <span className="text-emerald-700 font-semibold">✓ Dispecerat 112 & Audio Salvat</span>
+                      <span className={evt.evidenceLoggedId ? 'text-emerald-700 font-semibold' : 'text-stone-500 font-semibold'}>
+                        {evt.evidenceLoggedId ? '✓ Audio salvat în Seif' : 'Fără înregistrare audio — 112 nu a fost apelat automat'}
+                      </span>
                     </div>
                   </div>
                 ))}

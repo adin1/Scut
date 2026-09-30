@@ -40,7 +40,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
     autoSmsEnabled: true,
     includeGpsCoordinates: true,
     includeBatteryStatus: true,
-    customGlobalSosTemplate: '🚨 ALERTĂ SCUT SOS: Am nevoie de sprijin de urgență! Poziție GPS: https://maps.google.com/?q=44.4378,26.0946 (Baterie: 84%)',
+    customGlobalSosTemplate: '🚨 ALERTĂ SCUT SOS: Am nevoie de sprijin de urgență! Poziție GPS: https://maps.google.com/?q=[GPS live la momentul trimiterii] (Baterie: 84%)',
     countdownSecondsBeforeSend: 3
   },
   onUpdateEmergencySmsConfig,
@@ -222,7 +222,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
       setSimStep(2);
       setSimulatedLogs(prev => [
         ...prev,
-        '[0.4s] Conectare modem celular (GSM/VoLTE) & interogare GPS (44.4378° N, 26.0946° E)...'
+        '[0.4s] Conectare modem celular (GSM/VoLTE) & interogare GPS...'
       ]);
     }, 800);
 
@@ -247,11 +247,13 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
 
   const enabledSosContactsCount = contacts.filter(c => c.notifyOnSos).length;
 
+  // Preview only — arată formatul mesajului, nu locația reală. Coordonatele reale
+  // (via navigator.geolocation) sunt inserate abia la trimiterea efectivă din SosAlertScreen.
   const generateSmsPreviewText = (contact: TrustedContact) => {
     if (contact.smsMode === 'direct') {
       let text = contact.customMessage || '🚨 ALERTA SCUT SOS: Am nevoie de sprijin de urgență!';
       if (contact.includeGpsLocation) {
-        text += ' Locație: https://maps.google.com/?q=44.4378,26.0946';
+        text += ' Locație: https://maps.google.com/?q=[GPS live la momentul trimiterii]';
       }
       if (contact.includeBatteryStatus) {
         text += ' (Baterie: 84%)';
@@ -261,7 +263,7 @@ export const TrustedContactsScreen: React.FC<TrustedContactsScreenProps> = ({
     // Decoy Mode
     let text = contact.decoyCodeWord || 'Pachetul de la curier a sosit.';
     if (contact.includeGpsLocation) {
-      text += ' [Ref: 44.4378,26.0946]';
+      text += ' [Ref: GPS live la momentul trimiterii]';
     }
     return text;
   };
