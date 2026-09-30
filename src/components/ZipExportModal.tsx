@@ -203,7 +203,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       // Populate evidence files into folders
       evidenceList.forEach((item, i) => {
         const description = decryptedDescriptions.get(item.id) || item.description;
-        const fileContent = `ID PROBĂ: ${item.id}\nTITLU: ${item.title}\nDATĂ: ${item.date}\nLOCAȚIE: ${item.location || 'București (Locație Protejată)'}\nSHA-256: ${item.sha256Hash}\n\nDESCRIERE DETALIATĂ:\n${description}\n\nETICHETE:\n${item.tags.join(', ')}\n\n[PROBĂ ORIGINALĂ IZOLATĂ ÎN SANDBOX SCUT]`;
+        const fileContent = `ID PROBĂ: ${item.id}\nTITLU: ${item.title}\nDATĂ: ${item.date}\nLOCAȚIE: ${item.location || 'Locație neprecizată'}\nSHA-256: ${item.sha256Hash}\n\nDESCRIERE DETALIATĂ:\n${description}\n\nETICHETE:\n${item.tags.join(', ')}\n\n[PROBĂ ORIGINALĂ IZOLATĂ ÎN SANDBOX SCUT]`;
 
         if (item.category === 'audio') {
           audioFolder?.file(`AUDIO_${i + 1}_${item.id}.txt`, fileContent);
@@ -337,10 +337,10 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
 
               <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                 {([
-                  { id: 'lawyer', label: '⚖️ Avocat Barou', defaultName: 'Avocat Barou Ales / Oficiu' },
-                  { id: 'court', label: '🏛️ Instanță Judecată', defaultName: 'Judecătoria Sector 1 / OPP' },
-                  { id: 'police', label: '🛡️ Poliție / Parchet', defaultName: 'Secția de Poliție competentă' },
-                  { id: 'inml', label: '🏥 Medicină Legală', defaultName: 'INML Mina Minovici' }
+                  { id: 'lawyer', label: '⚖️ Avocat Barou', defaultName: 'Avocat Baroul Cluj Ales / Oficiu' },
+                  { id: 'court', label: '🏛️ Instanță Judecată', defaultName: 'Judecătoria Cluj-Napoca / OPP' },
+                  { id: 'police', label: '🛡️ Poliție / Parchet', defaultName: 'Secția de Poliție Cluj-Napoca competentă' },
+                  { id: 'inml', label: '🏥 Medicină Legală', defaultName: 'IML Cluj-Napoca' }
                 ] as const).map(item => (
                   <button
                     key={item.id}

@@ -94,7 +94,6 @@ export const INITIAL_EVIDENCE: Evidence[] = [
       storageLayer: 'aes256_gcm_vault'
     },
     source: 'uploaded_file',
-    coordinates: { lat: 44.4378, lng: 26.0946 },
     uploaderUserId: 'usr-victim-001',
     uploaderRole: 'victim',
     isEncrypted: true,
@@ -125,7 +124,6 @@ export const INITIAL_EVIDENCE: Evidence[] = [
       storageLayer: 'aes256_gcm_vault'
     },
     source: 'direct_microphone',
-    coordinates: { lat: 44.4321, lng: 26.0892 },
     uploaderUserId: 'usr-victim-001',
     uploaderRole: 'victim',
     isEncrypted: true,
@@ -138,7 +136,7 @@ export const INITIAL_EVIDENCE: Evidence[] = [
     evidenceId: 'EV-2026-0819-C882',
     caseId: 'SCUT-RO-2026-B0892',
     originalVsDerived: 'original',
-    title: 'Certificat Medico-Legal Preliminar (INML Mina Minovici)',
+    title: 'Certificat Medico-Legal Preliminar (IML Cluj-Napoca)',
     category: 'medical_cert',
     dateCreated: '19 Aug 2026, 11:30',
     serverTimestamp: 1787139000000,
@@ -671,96 +669,11 @@ export const INITIAL_SAFETY_CHECK_ITEMS: SafetyCheckItem[] = [
   }
 ];
 
-export const INITIAL_RESOURCE_PROVIDERS: ResourceProvider[] = [
-  {
-    id: 'sh-001',
-    name: 'Centrul de Primire în Regim de Urgență „Sfânta Maria” (DGASPC)',
-    type: 'shelter',
-    address: 'Locație Confidențială - Sector 1',
-    city: 'București',
-    county: 'București',
-    phone: '0800.500.333',
-    email: 'urgenta.dgaspc1@bucuresti.ro',
-    emergency24h: true,
-    hasPsychologicalSupport: true,
-    schedule: 'Non-Stop 24/7',
-    services: ['Cazare de urgență', 'Suport Psihologic Traumă', 'Pază armată 24/7', 'Asistență juridică'],
-    coordinates: { lat: 44.4510, lng: 26.0790 },
-    capacityStatus: 'available',
-    eligibility: 'Victime ale violenței domestice cu sau fără copii minori.',
-    description: 'Cazare de urgență pentru mame și copii, consiliere psihologică de criză, masă caldă, pază permanentă 24/7.'
-  },
-  {
-    id: 'sh-002',
-    name: 'Adăpostul de Criză „Aripa Speranței” (Asociația ANAIS)',
-    type: 'ngo',
-    address: 'Locație Securizată Anonimizată',
-    city: 'București',
-    county: 'București',
-    phone: '0743.088.880',
-    email: 'contact@asociatia-anais.ro',
-    emergency24h: true,
-    hasPsychologicalSupport: true,
-    schedule: 'Non-Stop 24/7',
-    services: ['Adăpost de criză', 'Psihoterapie de grup și individuală', 'Asistență avocat OPP', 'Linie de urgență'],
-    coordinates: { lat: 44.4268, lng: 26.1025 },
-    capacityStatus: 'available',
-    eligibility: 'Femei victime ale violenței domestice și de gen.',
-    description: 'Adăpost confidențial, psihoterapie specializată pentru traume de violență domestică și suport juridic pentru emiterea Ordinului de Protecție.'
-  },
-  {
-    id: 'sh-003',
-    name: 'Secția de Poliție Nr. 1 - Compartimentul Violență Domestică',
-    type: 'police',
-    address: 'Bulevardul Lascăr Catargiu Nr. 34',
-    city: 'București',
-    county: 'București',
-    phone: '112 / 021.314.1516',
-    emergency24h: true,
-    hasPsychologicalSupport: false,
-    schedule: 'Non-Stop 24/7',
-    services: ['Ordin de Protecție Provizoriu (OPP)', 'Monitorizare Brățară Electronică', 'Intervenție de urgență 112'],
-    coordinates: { lat: 44.4485, lng: 26.0890 },
-    capacityStatus: 'available',
-    eligibility: 'Sesizări de urgență, emitere OPP.',
-    description: 'Emitere imediată a Ordinului de Protecție Provizoriu (OPP) valabil 5 zile pe loc și monitorizare brățară electronică.'
-  },
-  {
-    id: 'sh-004',
-    name: 'Institutul Național de Medicină Legală „Mina Minovici”',
-    type: 'hospital',
-    address: 'Șoseaua Vitan-Bârzești Nr. 9',
-    city: 'București',
-    county: 'București',
-    phone: '021.332.1217',
-    emergency24h: true,
-    hasPsychologicalSupport: false,
-    schedule: 'Non-Stop 24/7 (Urgențe Medico-Legale)',
-    services: ['Constatare leziuni fizice', 'Certificat medico-legal oficial', 'Recoltare probe biologice'],
-    coordinates: { lat: 44.4012, lng: 26.1368 },
-    capacityStatus: 'available',
-    eligibility: 'Persoane vătămate fizic.',
-    description: 'Examinare medico-legală gratuită sau decontată, eliberare certificat constatator oficial pentru dosarul penal și instanță.'
-  },
-  ...CLUJ_RESOURCE_PROVIDERS,
-  {
-    id: 'sh-006',
-    name: 'Cabinet Barou Pro-Bono Asistență Juridică Gratuită',
-    type: 'court',
-    address: 'Strada Academiei Nr. 17',
-    city: 'București',
-    county: 'București',
-    phone: '0730.555.777',
-    emergency24h: false,
-    hasPsychologicalSupport: false,
-    schedule: 'Luni - Vineri: 08:30 - 18:00',
-    services: ['Redactare cerere Ordin de Protecție', 'Reprezentare gratuită instanță', 'Consultanță dreptul familiei'],
-    coordinates: { lat: 44.4355, lng: 26.0998 },
-    capacityStatus: 'available',
-    eligibility: 'Victime ale violenței domestice conform Legii 217/2003.',
-    description: 'Avocați specializați desemnați din oficiu sau pro-bono pentru susținerea cauzelor de ordin de protecție la Judecătorie.'
-  }
-];
+// Sursa unică de adăposturi/instituții afișate în hartă: datele reale, verificate
+// pentru Cluj-Napoca și județul Cluj din `./cluj.ts`. Foloseau anterior un amestec
+// de instituții fictive din București (adrese, telefoane și coordonate inventate)
+// — eliminate, pentru că aplicația e destinată exclusiv Cluj-Napoca.
+export const INITIAL_RESOURCE_PROVIDERS: ResourceProvider[] = CLUJ_RESOURCE_PROVIDERS;
 
 export const DEFAULT_CONTACTS: TrustedContact[] = [
   {
@@ -1014,6 +927,6 @@ export const INITIAL_CASE_NOTES: CaseNote[] = [
   }
 ];
 
-// Backward compatibility alias for SheltersMapScreen & CourtExportScreen
+// Alias folosit de SheltersMapScreen (harta de resurse) — vezi INITIAL_RESOURCE_PROVIDERS mai sus.
 export const SHELTERS_LIST = INITIAL_RESOURCE_PROVIDERS;
 export const INITIAL_EVIDENCE_ITEMS = INITIAL_EVIDENCE;

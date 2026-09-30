@@ -115,7 +115,7 @@ export const WeatherDuressScreen: React.FC<WeatherDuressScreenProps> = ({
 
         <div className="flex items-center gap-1.5 text-xs font-semibold">
           <MapPin className="w-3.5 h-3.5 text-amber-300" />
-          <span>București, Sector 1</span>
+          <span>Cluj-Napoca</span>
         </div>
 
         <button

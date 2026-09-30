@@ -42,14 +42,14 @@ export const SpecialistDashboardScreen: React.FC<SpecialistDashboardScreenProps>
 
   const roleLabels: Record<InstitutionalRole, { label: string; org: string; color: string }> = {
     victim: { label: 'Victimă', org: 'Titular Dosar', color: 'bg-emerald-100 text-emerald-800' },
-    police: { label: 'Poliția Română', org: 'Secția 1 Poliție (OPP & 112)', color: 'bg-blue-100 text-blue-800' },
-    dgaspc: { label: 'DGASPC', org: 'Direcția Asistență Socială & Minori', color: 'bg-indigo-100 text-indigo-800' },
+    police: { label: 'Poliția Română', org: 'Secția 1 Poliție Cluj-Napoca (OPP & 112)', color: 'bg-blue-100 text-blue-800' },
+    dgaspc: { label: 'DGASPC', org: 'DGASPC Cluj — Direcția Asistență Socială & Minori', color: 'bg-indigo-100 text-indigo-800' },
     social_worker: { label: 'Asistent Social', org: 'Serviciul Comunitar', color: 'bg-purple-100 text-purple-800' },
-    ngo_operator: { label: 'Operator ONG', org: 'Asociația ANAIS', color: 'bg-teal-100 text-teal-800' },
+    ngo_operator: { label: 'Operator ONG', org: 'Asociația ARTEMIS Cluj', color: 'bg-teal-100 text-teal-800' },
     doctor: { label: 'Medic Spital', org: 'Unitate Primiri Urgențe (UPU)', color: 'bg-rose-100 text-rose-800' },
-    forensic_inml: { label: 'Medic Legist', org: 'INML Mina Minovici', color: 'bg-red-100 text-red-800' },
+    forensic_inml: { label: 'Medic Legist', org: 'IML Cluj-Napoca', color: 'bg-red-100 text-red-800' },
     psychologist: { label: 'Psihoterapeut', org: 'Centrul Maternal Traumă', color: 'bg-amber-100 text-amber-800' },
-    lawyer: { label: 'Avocat Barou', org: 'Baroul București (Pro-Bono)', color: 'bg-cyan-100 text-cyan-800' },
+    lawyer: { label: 'Avocat Barou', org: 'Baroul Cluj (Pro-Bono)', color: 'bg-cyan-100 text-cyan-800' },
     institutional_admin: { label: 'Administrator', org: 'Registru Regional Pilot', color: 'bg-slate-100 text-slate-800' },
     auditor: { label: 'Auditor eIDAS', org: 'Comisie Audit & Conformitate', color: 'bg-stone-100 text-stone-800' }
   };

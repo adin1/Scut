@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { INITIAL_EVIDENCE_ITEMS } from '../data/mockData';
+import { CLUJ_RESOURCE_PROVIDERS } from '../data/cluj';
 import { ZipExportModal } from './ZipExportModal';
 
 interface CourtExportScreenProps {
@@ -21,13 +22,29 @@ interface CourtExportScreenProps {
   vaultKey: CryptoKey | null;
 }
 
+// Autorități destinatare reale din Cluj-Napoca, derivate din sursa unică CLUJ_RESOURCE_PROVIDERS
+// (nu duplicăm denumirile/adresele aici a doua oară).
+const COURT_EXPORT_RECIPIENT_IDS = [
+  'cj-judecatoria-cluj-napoca',
+  'cj-baroul-cluj-saj',
+  'cj-politia-mun-cluj-napoca',
+  'cj-iml-cluj',
+] as const;
+const COURT_EXPORT_RECIPIENTS = COURT_EXPORT_RECIPIENT_IDS
+  .map(id => CLUJ_RESOURCE_PROVIDERS.find(r => r.id === id))
+  .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
 export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
   onBack,
   onQuickExit,
   evidenceList = INITIAL_EVIDENCE_ITEMS,
   vaultKey
 }) => {
-  const [recipient, setRecipient] = useState('Judecătoria Sector 1 București • Secția Civilă / OPP');
+  const [recipient, setRecipient] = useState(
+    COURT_EXPORT_RECIPIENTS[0]
+      ? `${COURT_EXPORT_RECIPIENTS[0].name} • ${COURT_EXPORT_RECIPIENTS[0].address}`
+      : 'Judecătoria Cluj-Napoca'
+  );
   const [isZipModalOpen, setIsZipModalOpen] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
@@ -147,10 +164,9 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
             onChange={e => setRecipient(e.target.value)}
             className="w-full p-2 bg-stone-50 border border-stone-300 rounded-xl text-xs outline-none font-semibold text-slate-800"
           >
-            <option value="Judecătoria Sector 1 București • Secția Civilă / OPP">Judecătoria Sector 1 București (Emitere Ordin de Protecție)</option>
-            <option value="Baroul București • Serviciul Asistență Judiciară Gratuită">Baroul București (Avocat din Oficiu / Pro-Bono)</option>
-            <option value="Poliția Română • Secția 1 Poliție București">Poliția Română • Secția 1 Poliție (OPP de Urgență)</option>
-            <option value="Institutul Național de Medicină Legală Mina Minovici">INML Mina Minovici (Expertiză Medico-Legală)</option>
+            {COURT_EXPORT_RECIPIENTS.map(r => (
+              <option key={r.id} value={`${r.name} • ${r.address}`}>{r.name}</option>
+            ))}
           </select>
         </div>
 

@@ -54,10 +54,11 @@ export const SheltersMapScreen: React.FC<SheltersMapScreenProps> = ({ onBack, on
         const query = searchQuery.toLowerCase();
         const matchesName = item.name.toLowerCase().includes(query);
         const matchesCity = item.city.toLowerCase().includes(query);
+        const matchesDistrict = item.district?.toLowerCase().includes(query) || false;
         const matchesAddress = item.address.toLowerCase().includes(query);
         const matchesDesc = item.description.toLowerCase().includes(query);
         const matchesServices = item.services?.some(s => s.toLowerCase().includes(query)) || false;
-        if (!matchesName && !matchesCity && !matchesAddress && !matchesDesc && !matchesServices) {
+        if (!matchesName && !matchesCity && !matchesDistrict && !matchesAddress && !matchesDesc && !matchesServices) {
           return false;
         }
       }
@@ -121,7 +122,7 @@ export const SheltersMapScreen: React.FC<SheltersMapScreenProps> = ({ onBack, on
             <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Caută oraș (București, Cluj, etc.) sau serviciu..."
+              placeholder="Caută cartier, instituție sau serviciu (ex: Mărăști, OPP)..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-7 py-1.5 bg-white border border-stone-300 focus:border-indigo-500 rounded-xl text-xs outline-none transition"
@@ -344,7 +345,9 @@ export const SheltersMapScreen: React.FC<SheltersMapScreenProps> = ({ onBack, on
                 </div>
 
                 <h3 className="text-xs font-bold text-slate-900 mt-1">{activeSelected.name}</h3>
-                <p className="text-[10px] text-slate-500">{activeSelected.address}, {activeSelected.city}</p>
+                <p className="text-[10px] text-slate-500">
+                  {activeSelected.address}{activeSelected.district ? `, ${activeSelected.district}` : ''}, {activeSelected.city}
+                </p>
               </div>
             </div>
 
