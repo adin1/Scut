@@ -56,7 +56,6 @@ export const INITIAL_VOICE_EVENTS: VoiceTriggerEvent[] = [
     rawTranscript: 'Te rog lasă-mă, ajutor!',
     modeAtTrigger: 'calculator',
     isSilent: true,
-    coordinates: { lat: 44.4378, lng: 26.0946 },
     evidenceLoggedId: 'ev-002',
     status: 'completed'
   }
@@ -725,7 +724,7 @@ export const DEFAULT_EMERGENCY_SMS_CONFIG: EmergencySmsConfig = {
   autoSmsEnabled: true,
   includeGpsCoordinates: true,
   includeBatteryStatus: true,
-  customGlobalSosTemplate: '🚨 ALERTĂ SCUT SOS: Am nevoie de sprijin de urgență! Poziție GPS: https://maps.google.com/?q=44.4378,26.0946 (Baterie: 84%)',
+  customGlobalSosTemplate: '🚨 ALERTĂ SCUT SOS: Am nevoie de sprijin de urgență! Poziție GPS: https://maps.google.com/?q=[GPS live la momentul trimiterii] (Baterie: 84%)',
   countdownSecondsBeforeSend: 3
 };
 

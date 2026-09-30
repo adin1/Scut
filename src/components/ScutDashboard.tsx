@@ -328,7 +328,7 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
               <Fingerprint className={`w-4 h-4 shrink-0 ${biometricConfig.enabled ? 'text-indigo-600' : 'text-slate-400'}`} />
             )}
             <div className="truncate">
-              <span className="font-bold text-slate-900 block text-[10px]">Autentificare Biometrică</span>
+              <span className="font-bold text-slate-900 block text-[10px]">Autentificare 2FA</span>
               <span className="text-[9px] text-slate-500 truncate">
                 {biometricConfig.enabled ? 'Activă' : 'Dezactivată'}
               </span>

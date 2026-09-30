@@ -184,7 +184,9 @@ export default function App() {
       isSilent: isSilent,
       coordinates,
       evidenceLoggedId: willRecord ? evidenceId : undefined,
-      status: willRecord ? 'audio_recording' : isSilent ? 'completed' : 'dispatched_112'
+      // Never 'dispatched_112' — this app cannot call 112 automatically in any branch,
+      // silent or not; the user always has to tap "Sună 112" herself.
+      status: willRecord ? 'audio_recording' : 'completed'
     };
     setVoiceEvents(prev => [newEvent, ...prev]);
 
