@@ -441,7 +441,7 @@ export const INITIAL_AUDIT_LOGS: AuditEvent[] = [
     timeString: 'Azi, 15:55',
     actorId: 'usr-lawyer-003',
     actorRole: 'lawyer',
-    actorInstitution: 'Baroul București Pro-Bono',
+    actorInstitution: 'Baroul Cluj Pro-Bono',
     action: 'view',
     resourceType: 'case',
     resourceId: 'SCUT-RO-2026-B0892',
@@ -456,7 +456,7 @@ export const INITIAL_AUDIT_LOGS: AuditEvent[] = [
     timeString: 'Azi, 13:30',
     actorId: 'usr-police-101',
     actorRole: 'police',
-    actorInstitution: 'Secția 1 Poliție București',
+    actorInstitution: 'Secția 1 Poliție Cluj-Napoca',
     action: 'integrity_verify',
     resourceType: 'evidence',
     resourceId: 'EV-2026-0828-A492',
@@ -471,7 +471,7 @@ export const INITIAL_AUDIT_LOGS: AuditEvent[] = [
     timeString: 'Azi, 10:30',
     actorId: 'usr-dgaspc-002',
     actorRole: 'dgaspc',
-    actorInstitution: 'DGASPC Sector 1',
+    actorInstitution: 'DGASPC Cluj',
     action: 'view',
     resourceType: 'child',
     resourceId: 'ch-001',
@@ -489,7 +489,7 @@ export const INITIAL_AUDIT_LOGS: AuditEvent[] = [
     action: 'consent_grant',
     resourceType: 'case',
     resourceId: 'SCUT-RO-2026-B0892',
-    description: 'Victima a acordat drept de vizualizare dosar către Av. Simona Marinescu (Baroul București).',
+    description: 'Victima a acordat drept de vizualizare dosar către Av. Simona Marinescu (Baroul Cluj).',
     legalBasis: 'Consimțământ expres RGPD / Legea 217/2003',
     immutableBlockIndex: 1039
   },
@@ -499,7 +499,7 @@ export const INITIAL_AUDIT_LOGS: AuditEvent[] = [
     timeString: '26 Aug 2026, 19:00',
     actorId: 'usr-police-101',
     actorRole: 'police',
-    actorInstitution: 'Secția 1 Poliție',
+    actorInstitution: 'Secția 1 Poliție Cluj-Napoca',
     action: 'create',
     resourceType: 'protection_order',
     resourceId: 'OPP-2026-S1-094',
@@ -514,7 +514,7 @@ export const INITIAL_CONSENTS: Consent[] = [
     id: 'csnt-001',
     victimId: 'usr-victim-001',
     grantedToRole: 'lawyer',
-    grantedToInstitution: 'Baroul București Pro-Bono',
+    grantedToInstitution: 'Baroul Cluj Pro-Bono',
     grantedToPersonName: 'Av. Simona Marinescu',
     grantedPermissions: ['all_evidence', 'medical_docs', 'timeline', 'children'],
     grantDate: '27 Aug 2026',
@@ -527,7 +527,7 @@ export const INITIAL_CONSENTS: Consent[] = [
     id: 'csnt-002',
     victimId: 'usr-victim-001',
     grantedToRole: 'dgaspc',
-    grantedToInstitution: 'DGASPC Sector 1',
+    grantedToInstitution: 'DGASPC Cluj',
     grantedToPersonName: 'Inspector Ana Maria Vlădescu',
     grantedPermissions: ['children', 'specific_evidence', 'timeline'],
     specificEvidenceIds: ['ev-001', 'ev-003'],
@@ -541,7 +541,7 @@ export const INITIAL_CONSENTS: Consent[] = [
     id: 'csnt-003',
     victimId: 'usr-victim-001',
     grantedToRole: 'psychologist',
-    grantedToInstitution: 'Centrul Sens',
+    grantedToInstitution: 'Asociația ARTEMIS Cluj',
     grantedToPersonName: 'Dr. Carmen Enache',
     grantedPermissions: ['medical_docs', 'timeline'],
     grantDate: '27 Aug 2026',
@@ -555,7 +555,7 @@ export const INITIAL_CONSENTS: Consent[] = [
 export const DEFAULT_SAFETY_PLAN: SafetyPlan = {
   id: 'sp-001',
   trustedPeople: ['Elena Popescu (Soră)', 'Ioana Radu (Prietenă)', 'Av. Simona Marinescu'],
-  safeLocation: 'Adăpostul secret DGASPC / Locuința bunicii din județul Ilfov',
+  safeLocation: 'Adăpostul secret DGASPC / Locuința unei rude în afara județului Cluj',
   evacuationRoute: 'Scara de serviciu B, ieșire direct în curtea interioară ferită de bulevard',
   emergencyBagItems: [
     { id: 'eb-1', label: 'Buletin identitate & Certificate naștere copii', packed: true, category: 'Acte' },
@@ -823,7 +823,7 @@ export const CASE_DOSSIER_MOCK: CaseDossierSection[] = [
     dataFields: [
       { label: 'Cod Unic Anonimizat Caz', value: 'SCUT-RO-2026-B0892', confidential: false },
       { label: 'Nume Prenume (Criptat AES-256)', value: 'M. P. (Acces restricționat prin cheie partajată)', confidential: true },
-      { label: 'Adresă Risc Ridicat', value: 'Locație monitorizată - Sector 1, București', confidential: true },
+      { label: 'Adresă Risc Ridicat', value: 'Locație monitorizată - Cluj-Napoca', confidential: true },
       { label: 'Copii Minori în Întreținere', value: '2 minori (băiat 6 ani, fată 3 ani)', confidential: false },
       { label: 'Nivel Evaluare Risc Poliție', value: 'IMINENT / RIDICAT (Scor 18/20 la formularul de risc)', confidential: false }
     ]
@@ -836,7 +836,7 @@ export const CASE_DOSSIER_MOCK: CaseDossierSection[] = [
     lastUpdated: '26 Aug 2026',
     dataFields: [
       { label: 'Sesizări Anterioare 112', value: '3 apeluri înregistrate în ultimele 60 de zile', confidential: false },
-      { label: 'Ordin de Protecție Provizoriu (OPP)', value: 'Emis la 26.08.2026 de Secția 1 Poliție (Valabil 5 zile)', confidential: false },
+      { label: 'Ordin de Protecție Provizoriu (OPP)', value: 'Emis la 26.08.2026 de Secția 1 Poliție Cluj-Napoca (Valabil 5 zile)', confidential: false },
       { label: 'Măsură Brățară Electronică', value: 'Dispozitiv de monitorizare activ pe agresor (Rază 500m)', confidential: false },
       { label: 'Interdicții Active', value: 'Evacuare temporară a agresorului din domiciliu, interdicție contact', confidential: false }
     ]
@@ -848,7 +848,7 @@ export const CASE_DOSSIER_MOCK: CaseDossierSection[] = [
     status: 'complet',
     lastUpdated: '19 Aug 2026',
     dataFields: [
-      { label: 'Certificat Medico-Legal', value: 'Nr. A4/8892 eliberat de INML Mina Minovici', confidential: false },
+      { label: 'Certificat Medico-Legal', value: 'Nr. A4/8892 eliberat de IML Cluj-Napoca', confidential: false },
       { label: 'Zile Îngrijiri Medicale', value: '4-5 zile (leziuni contuzive traumatice, echimoze multiple)', confidential: false },
       { label: 'Stare Fizică Curentă', value: 'Tratament ambulatoriu, investigații radiologice negative pentru fracturi', confidential: true }
     ]
@@ -872,7 +872,7 @@ export const CASE_DOSSIER_MOCK: CaseDossierSection[] = [
     status: 'actualizat',
     lastUpdated: '28 Aug 2026',
     dataFields: [
-      { label: 'Statut Adăpost de Urgență', value: 'Loc rezervat în Centrul „Sfânta Maria” (Cazare + Masă + Asistență)', confidential: false },
+      { label: 'Statut Adăpost de Urgență', value: 'Loc rezervat la Centrul de Primire în Regim de Urgență DGASPC Cluj (Cazare + Masă + Asistență)', confidential: false },
       { label: 'Pachet Sprijin Financiar', value: 'Ajutor de urgență pentru chirie temporară aprobat', confidential: false },
       { label: 'Școală/Grădiniță Copii', value: 'Procedură de transfer temporar confidențial în derulare', confidential: true }
     ]
@@ -883,7 +883,7 @@ export const INITIAL_CASE_TASKS: CaseTask[] = [
   {
     id: 'tsk-001',
     caseId: 'SCUT-RO-2026-B0892',
-    title: 'Depunere cerere prelungire Ordin la Judecătoria Sector 1',
+    title: 'Depunere cerere prelungire Ordin la Judecătoria Cluj-Napoca',
     assignedToRole: 'lawyer',
     dueDate: '30 Aug 2026',
     status: 'in_progress'

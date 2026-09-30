@@ -9,6 +9,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { CASE_DOSSIER_MOCK } from '../data/mockData';
+import { InstitutionalRole } from '../types/scut';
 
 interface CaseDossierScreenProps {
   onBack: () => void;
@@ -16,6 +17,19 @@ interface CaseDossierScreenProps {
 }
 
 type DossierRole = 'victima' | 'politie' | 'dgaspc' | 'medic_inml' | 'psiholog' | 'avocat';
+
+// CASE_DOSSIER_MOCK.authorizedRoles folosește InstitutionalRole (engleză), nu
+// cheile românești ale acestui selector — fără maparea asta, comparația directă
+// nu se potrivea niciodată (ex: 'politie' !== 'police') și fiecare secțiune
+// apărea mereu ca blocată, indiferent de rolul ales.
+const DOSSIER_ROLE_TO_INSTITUTIONAL_ROLE: Record<DossierRole, InstitutionalRole> = {
+  victima: 'victim',
+  politie: 'police',
+  dgaspc: 'dgaspc',
+  medic_inml: 'forensic_inml',
+  psiholog: 'psychologist',
+  avocat: 'lawyer',
+};
 
 export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, onQuickExit }) => {
   const [selectedRole, setSelectedRole] = useState<DossierRole>('victima');
@@ -104,7 +118,7 @@ export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, on
         {/* Case File Sections Matrix */}
         <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
           {CASE_DOSSIER_MOCK.map(section => {
-            const hasAccess = section.authorizedRoles.includes(selectedRole);
+            const hasAccess = section.authorizedRoles.includes(DOSSIER_ROLE_TO_INSTITUTIONAL_ROLE[selectedRole]);
 
             return (
               <div
