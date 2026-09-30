@@ -93,8 +93,10 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-start p-2 sm:p-4 md:p-6 select-none font-sans">
-      {/* Top Global Control Toolbar */}
-      <header className="w-full max-w-5xl mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-stone-900/90 backdrop-blur border border-stone-800 rounded-2xl shadow-xl">
+      {/* Top Global Control Toolbar — demo/testing panel only. Hidden on real phone-sized
+          screens so a real device shows just the disguised phone, full-screen, without the
+          "SCUT" branding or the PIN reveal in the footer below giving away the camouflage. */}
+      <header className="hidden sm:flex w-full max-w-5xl mb-4 flex-wrap items-center justify-between gap-3 px-4 py-3 bg-stone-900/90 backdrop-blur border border-stone-800 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 font-bold">
             <Shield className="w-5 h-5" />
@@ -326,8 +328,8 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
         </div>
       </main>
 
-      {/* Footer Helper text */}
-      <footer className="w-full max-w-5xl mt-3 text-center text-xs text-stone-500 flex flex-wrap items-center justify-center gap-4">
+      {/* Footer Helper text — reveals the real PIN/keyword for demo/testing convenience; must stay hidden on real phone-sized screens for the same reason as the header above. */}
+      <footer className="hidden sm:flex w-full max-w-5xl mt-3 text-center text-xs text-stone-500 flex-wrap items-center justify-center gap-4">
         <span>🎙️ Declanșator Vocal: <strong className="text-rose-400">Spune „{voicePrimaryKeyword}” oricând</strong></span>
         <span>🔐 Cod Standard: <strong className="text-stone-300">1234=</strong></span>
         <span>⚠️ PIN Constrângere: <strong className="text-amber-400">0000=</strong></span>
