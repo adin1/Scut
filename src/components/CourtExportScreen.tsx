@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { INITIAL_EVIDENCE_ITEMS } from '../data/mockData';
+import { evidenceDate } from '../utils/evidence';
 import { CLUJ_RESOURCE_PROVIDERS } from '../data/cluj';
 import { ZipExportModal } from './ZipExportModal';
 
@@ -63,7 +64,7 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
     csvContent += 'Numar Curent,ID Proba,Titlu,Categorie,Data Colectare,Dimensiune,Amprenta SHA-256,Statut Integritate,Conformitate CPP\n';
     
     evidenceList.forEach((item, idx) => {
-      csvContent += `${idx + 1},"${item.id}","${item.title}","${item.category}","${item.date}","${item.fileSize}","${item.sha256Hash}","VERIFICAT_NEALTERAT","Art. 197 CPP"\n`;
+      csvContent += `${idx + 1},"${item.id}","${item.title}","${item.category}","${evidenceDate(item)}","${item.fileSize}","${item.sha256Hash}","VERIFICAT_NEALTERAT","Art. 197 CPP"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -220,7 +221,7 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
                         <div className="font-semibold text-slate-900">{item.title}</div>
                         <div className="text-[9px] text-slate-500 uppercase">{item.category} • {item.originalVsDerived || 'original'}</div>
                       </td>
-                      <td className="p-1.5 text-slate-600">{item.date}</td>
+                      <td className="p-1.5 text-slate-600">{evidenceDate(item)}</td>
                       <td className="p-1.5 font-mono text-[8px] text-teal-800 break-all max-w-[120px]">
                         {item.sha256Hash.slice(0, 18)}...
                       </td>

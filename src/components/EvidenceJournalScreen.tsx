@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { computeSha256Hash, formatTime, encryptVaultText } from '../utils/security';
+import { evidenceDate } from '../utils/evidence';
 import { AesEncryptionModal } from './AesEncryptionModal';
 import { ZipExportModal } from './ZipExportModal';
 import { DecryptedText } from './DecryptedText';
@@ -363,7 +364,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-slate-900 leading-tight">{item.title}</h3>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{item.date}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{evidenceDate(item)}</p>
                     </div>
                   </div>
 
@@ -545,14 +546,14 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur text-white text-[9px] px-2 py-1 rounded font-mono">
-                  Timestamp: {selectedEvidence.date}
+                  Timestamp: {evidenceDate(selectedEvidence)}
                 </div>
               </div>
             )}
 
             <div>
               <h3 className="text-sm font-bold text-slate-900">{selectedEvidence.title}</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">{selectedEvidence.date} • {selectedEvidence.location || 'Locație sigură'}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{evidenceDate(selectedEvidence)} • {selectedEvidence.location || 'Locație sigură'}</p>
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed bg-stone-50 p-2.5 rounded-xl border border-stone-200">
