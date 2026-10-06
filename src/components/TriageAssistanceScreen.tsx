@@ -378,7 +378,7 @@ export const TriageAssistanceScreen: React.FC<TriageAssistanceScreenProps> = ({
             <div className="flex-1 min-h-[190px] max-h-[260px] bg-white border border-stone-200 rounded-2xl p-2.5 overflow-y-auto space-y-2 text-xs shadow-inner">
               <div className="flex items-center justify-between pb-1 border-b border-stone-100 text-[9px] text-slate-500">
                 <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                  <Lock className="w-3 h-3" /> Conexiune Criptată End-to-End
+                  <Lock className="w-3 h-3" /> Mesajele sunt procesate de Google Gemini
                 </span>
                 <button
                   onClick={clearChatHistory}

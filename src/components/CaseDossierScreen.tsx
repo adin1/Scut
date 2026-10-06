@@ -78,7 +78,7 @@ export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, on
             <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
             <span>Prevenirea Retraumatizării prin Dosar Unic:</span>
           </div>
-          Victima nu mai este nevoită să repete povestea abuzului la 5 instituții diferite. Informațiile sunt partajate securizat cu acces strict pe bază de rol (RBAC) și criptare de la un capăt la altul.
+          Victima nu mai este nevoită să repete povestea abuzului la 5 instituții diferite. Aceasta este o demonstrație: alege un rol și vezi ce secțiuni ar putea consulta. În această versiune nu există partajare reală cu instituții, iar datele afișate sunt exemple.
         </div>
 
         {/* Role Switcher Simulator */}
@@ -169,7 +169,7 @@ export const CaseDossierScreen: React.FC<CaseDossierScreenProps> = ({ onBack, on
 
       {/* Footer Security Notice */}
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-600 text-center">
-        Toate accesările dosarului sunt auditate criptografic într-un registru distribuit de securitate.
+        Demonstrație: accesările nu sunt înregistrate într-un registru real.
       </div>
     </div>
   );

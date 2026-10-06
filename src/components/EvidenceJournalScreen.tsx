@@ -371,7 +371,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[9px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
                       <Lock className="w-2.5 h-2.5 text-emerald-700" />
-                      AES-256
+                      {item.descriptionIv ? 'AES-256' : 'Exemplu, necriptat'}
                     </span>
                     {item.duration && (
                       <span className="text-[9px] font-mono text-slate-500">{item.duration}</span>
@@ -567,18 +567,18 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
               <div className="text-teal-400 font-bold flex items-center justify-between">
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                  SIGILIU CRIPTOGRAFIC INSTANȚĂ:
+                  AMPRENTĂ SHA-256 (calculată la creare):
                 </span>
                 <span className="text-[9px] bg-teal-950 text-teal-300 border border-teal-800 px-1.5 py-0.2 rounded">
-                  AES-256-GCM
+                  {selectedEvidence.descriptionIv ? 'Descriere criptată AES-256-GCM' : 'Probă-exemplu, necriptată'}
                 </span>
               </div>
               <div className="break-all text-[9px] text-stone-400 bg-slate-900 p-1.5 rounded border border-slate-800">
                 {selectedEvidence.sha256Hash}
               </div>
               <div className="text-[9px] text-emerald-400 pt-0.5 flex items-center justify-between">
-                <span>✓ Integritate verificată conform Legii 217/2003</span>
-                <span>Tag: GMAC 128b</span>
+                <span>Amprenta nu este reverificată automat</span>
+                {selectedEvidence.descriptionIv && <span>Tag GCM 128b</span>}
               </div>
             </div>
 

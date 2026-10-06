@@ -61,7 +61,7 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
             </div>
             <p className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Sesiune Criptată • În Siguranță
+              Sesiune activă • date doar în memorie
             </p>
           </div>
         </div>
@@ -230,12 +230,12 @@ export const ScutDashboard: React.FC<ScutDashboardProps> = ({
                 <Scale className="w-4 h-4" />
               </div>
               <span className="text-[9px] font-bold bg-cyan-100 text-cyan-800 px-1.5 py-0.2 rounded-full font-serif">
-                PDF/A Instanță
+                PDF / ZIP
               </span>
             </div>
             <div>
               <h2 className="text-[11px] font-bold text-slate-800 group-hover:text-cyan-900">Pachet Probatoriu Judiciar</h2>
-              <p className="text-[9px] text-slate-500 leading-tight">Manifest, ZIP & Index ECRIS</p>
+              <p className="text-[9px] text-slate-500 leading-tight">Manifest, ZIP & Index probe</p>
             </div>
           </button>
         </div>

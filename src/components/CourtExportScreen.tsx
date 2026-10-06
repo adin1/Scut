@@ -61,10 +61,10 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
 
   const handleDownloadCsv = () => {
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'Numar Curent,ID Proba,Titlu,Categorie,Data Colectare,Dimensiune,Amprenta SHA-256,Statut Integritate,Conformitate CPP\n';
+    csvContent += 'Numar Curent,ID Proba,Titlu,Categorie,Data Colectare,Dimensiune,Amprenta SHA-256 (calculata la creare)\n';
     
     evidenceList.forEach((item, idx) => {
-      csvContent += `${idx + 1},"${item.id}","${item.title}","${item.category}","${evidenceDate(item)}","${item.fileSize}","${item.sha256Hash}","VERIFICAT_NEALTERAT","Art. 197 CPP"\n`;
+      csvContent += `${idx + 1},"${item.id}","${item.title}","${item.category}","${evidenceDate(item)}","${item.fileSize}","${item.sha256Hash}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -83,12 +83,9 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
       cadruLegal: 'Legea nr. 217/2003 republicată & Art. 197-201 Cod Procedură Penală',
       dataGenerare: new Date().toISOString(),
       numarTotalProbe: evidenceList.length,
-      standardeConformitate: [
-        'PDF/A-2b ISO 19005-2',
-        'eIDAS Qualified Electronic Time Stamp Ready',
-        'SHA-256 Digital Chain of Custody'
-      ],
-      disclaimer: 'Probe digitale conservate într-un format conceput pentru verificarea autenticității, integrității, originii și momentului colectării.',
+      integritate: 'Amprentă SHA-256 (Web Crypto) calculată la crearea fiecărei probe.',
+      limitari: 'Fără semnătură electronică calificată sau marcă temporală; nu este PDF/A.',
+      disclaimer: 'Amprentele SHA-256 permit verificarea integrității probelor originale, dacă acestea sunt păstrate; nu atestă momentul colectării.',
       items: evidenceList
     };
 
@@ -147,13 +144,13 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
         <div className="bg-slate-900 text-white rounded-2xl p-3 shadow-xs space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              Pachet Probatoriu Pregătit pentru Transmitere
+              Pachet de probe pregătit
             </span>
-            <span className="text-[10px] font-mono text-slate-400">PDF/A-2b • eIDAS Ready</span>
+            <span className="text-[10px] font-mono text-slate-400">SHA-256 • fără semnătură calificată</span>
           </div>
-          <h3 className="text-xs font-bold text-white">Dosar Judiciar Integrat #SCUT-RO-2026-B0892</h3>
+          <h3 className="text-xs font-bold text-white">Dosar de probe</h3>
           <p className="text-[10px] text-slate-300">
-            Conține <strong>{evidenceList.length} probe digitale sigilate</strong> cu lanț de custodie conform Legii nr. 217/2003 și Art. 197 Cod Procedură Penală.
+            Conține <strong>{evidenceList.length} probe</strong>, fiecare cu amprentă SHA-256 calculată la creare.
           </p>
         </div>
 
@@ -175,9 +172,9 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
         <div className="bg-white border border-stone-300 rounded-2xl p-3.5 shadow-sm text-slate-900 space-y-3 font-serif">
           {/* Document Header */}
           <div className="text-center border-b border-stone-300 pb-2 space-y-0.5">
-            <h4 className="font-bold text-xs uppercase tracking-wide">ROMÂNIA • DOSAR PROBATORIU JUDICIAR</h4>
-            <p className="text-[10px] text-slate-600">Emis prin Infrastructura Digitală Interinstituțională SCUT</p>
-            <p className="text-[9px] text-slate-500 font-mono">ID PACHET: PKG-RO-2026-B0892-V2 • DATA: {new Date().toLocaleDateString('ro-RO')}</p>
+            <h4 className="font-bold text-xs uppercase tracking-wide">DOSAR DE PROBE • LEGEA 217/2003</h4>
+            <p className="text-[10px] text-slate-600">Generat cu aplicația SCUT</p>
+            <p className="text-[9px] text-slate-500 font-mono">DATA: {new Date().toLocaleDateString('ro-RO')}</p>
           </div>
 
           {/* Legal Framework text */}
@@ -234,7 +231,7 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
 
           {/* Legal Phrasing Mandated by Specification */}
           <div className="bg-stone-50 border border-stone-200 rounded-xl p-2 text-[10px] text-slate-700 italic leading-relaxed font-serif">
-            „Probe digitale conservate într-un format conceput pentru verificarea autenticității, integrității, originii și momentului colectării.”
+            „Amprentele SHA-256 permit verificarea integrității probelor originale, dacă acestea sunt păstrate; nu atestă momentul colectării.”
           </div>
         </div>
 
@@ -255,7 +252,7 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
             className="p-2.5 bg-cyan-800 hover:bg-cyan-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow transition cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Tipărește / Salvează PDF/A</span>
+            <span>Tipărește / Salvează PDF</span>
           </button>
 
           <button
@@ -271,7 +268,7 @@ export const CourtExportScreen: React.FC<CourtExportScreenProps> = ({
             className="p-2 bg-stone-200 hover:bg-stone-300 text-slate-800 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer"
           >
             <FileCode className="w-3.5 h-3.5 text-blue-700" />
-            <span>Descarcă JSON Manifest eIDAS</span>
+            <span>Descarcă JSON Manifest</span>
           </button>
         </div>
       </div>

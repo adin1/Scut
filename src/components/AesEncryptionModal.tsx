@@ -29,36 +29,36 @@ interface EncryptionStep {
 const ENCRYPTION_STEPS: EncryptionStep[] = [
   {
     id: 1,
-    label: 'Izolare Sandbox & Curățare Metadate',
-    sublabel: 'Eliminare trackere EXIF și izolare memorie volatilă RAM',
+    label: 'Pregătire probă',
+    sublabel: 'Descrierea probei este pregătită în memoria sesiunii',
     minProgress: 0,
     maxProgress: 22
   },
   {
     id: 2,
     label: 'Generare Cheie 256-bit & Vector IV (96-bit)',
-    sublabel: 'Derivare hardware PBKDF2-HMAC-SHA256 în Secure Enclave',
+    sublabel: 'Derivare PBKDF2-HMAC-SHA256 din parola seifului (Web Crypto, în browser)',
     minProgress: 23,
     maxProgress: 48
   },
   {
     id: 3,
     label: 'Criptare Blocuri AES-256-GCM',
-    sublabel: '14 runde de substituție (SubBytes), ShiftRows & MixColumns',
+    sublabel: 'Descrierea probei este criptată; se păstrează doar textul criptat',
     minProgress: 49,
     maxProgress: 78
   },
   {
     id: 4,
     label: 'Generare Hash Integritate SHA-256 & Tag GMAC',
-    sublabel: 'Creare sigiliu probatoriu legal conform Legii 217/2003',
+    sublabel: 'Amprentă SHA-256 calculată la creare; fără semnătură electronică calificată',
     minProgress: 79,
     maxProgress: 95
   },
   {
     id: 5,
-    label: 'Sigiliu Aplicat • Fișier Încuiat în Seif',
-    sublabel: 'Blocare finală în spațiul stocării criptate AES-256',
+    label: 'Probă Criptată • Salvată în Seif',
+    sublabel: 'Păstrată în memoria sesiunii; se pierde la reîncărcarea paginii',
     minProgress: 96,
     maxProgress: 100
   }
@@ -264,7 +264,7 @@ export const AesEncryptionModal: React.FC<AesEncryptionModalProps> = ({
           <div className="flex items-center justify-between text-slate-400 pb-1 border-b border-slate-800/60">
             <span className="flex items-center gap-1 text-[9px]">
               <Binary className="w-3 h-3 text-sky-400" />
-              FLUX TEXT CIFRAT (BLOCK STREAM):
+              ILUSTRARE VIZUALĂ (animație; criptarea reală s-a încheiat):
             </span>
             <span className="text-[9px] text-teal-400">
               Bloc {processedBlocks} / {totalBlocks}

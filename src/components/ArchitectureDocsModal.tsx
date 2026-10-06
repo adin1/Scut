@@ -26,7 +26,7 @@ export const ArchitectureDocsModal: React.FC<ArchitectureDocsModalProps> = ({ is
             </div>
             <div>
               <h2 className="text-base font-extrabold text-slate-900">🛡️ SCUT – Specificații de Arhitectură & UX/UI</h2>
-              <p className="text-xs text-slate-500">Documentație Principală de Securitate Cibernetică și Design Sigur</p>
+              <p className="text-xs text-slate-500">Document de proiectare: descrie arhitectura țintă; nu tot ce e scris aici este implementat în această versiune</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
