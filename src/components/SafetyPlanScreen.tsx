@@ -279,10 +279,18 @@ export const SafetyPlanScreen: React.FC<SafetyPlanScreenProps> = ({ onBack, onQu
 
       {/* Offline Status Footer */}
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-700 flex items-center justify-between">
-        <span className="flex items-center gap-1 font-medium text-emerald-800">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          Plan disponibil offline (fără conexiune la internet)
-        </span>
+        {/* Reflects the real service-worker state (production build only), not a fixed claim. */}
+        {'serviceWorker' in navigator && navigator.serviceWorker.controller ? (
+          <span className="flex items-center gap-1 font-medium text-emerald-800">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            Se deschide și fără internet • modificările nu se păstrează după reîncărcare
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 font-medium text-amber-800">
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+            Offline indisponibil încă — deschide aplicația o dată cu internet
+          </span>
+        )}
         <button
           onClick={() => setIsPlanHidden(true)}
           className="text-slate-600 hover:text-slate-900 font-bold underline cursor-pointer"
