@@ -377,16 +377,16 @@ export const SpecialistDashboardScreen: React.FC<SpecialistDashboardScreenProps>
                 <span>Protocol Break-Glass (Acces Excepțional de Urgență)</span>
               </div>
               <p className="text-[11px] text-rose-900 leading-snug">
-                Utilizat <strong>exclusiv în situații de pericol iminent de moarte</strong> când victima este inconștientă sau în imposibilitate de a acorda consimțământ. Accesarea este auditată ireversibil.
+                Utilizat <strong>exclusiv în situații de pericol iminent de moarte</strong> când victima este inconștientă sau în imposibilitate de a acorda consimțământ. În această versiune demonstrativă nu se deblochează și nu se auditează nimic real.
               </p>
             </div>
 
             {breakGlassSuccess ? (
               <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3 text-emerald-950 text-center space-y-1.5">
                 <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-xs">Acces de Urgență Autorizat</h4>
+                <h4 className="font-bold text-xs">Simulare: acces de urgență înregistrat local</h4>
                 <p className="text-[11px] text-emerald-800">
-                  Dosarul #{selectedCase.caseNumber} a fost deblocat pentru intervenție. Evenimentul a fost salvat în registrul de audit imutabil eIDAS Block #1044.
+                  Dosarul #{selectedCase.caseNumber} apare ca deblocat doar în această demonstrație; nicio instituție nu a primit acces real și nu s-a scris în niciun registru de audit.
                 </p>
               </div>
             ) : (
@@ -424,7 +424,7 @@ export const SpecialistDashboardScreen: React.FC<SpecialistDashboardScreenProps>
 
       {/* Footer Info */}
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-600 text-center">
-        Platforma SCUT interconectează Poliția, DGASPC, INML și Baroul conform Legii 217/2003 republicată.
+        Demonstrație a conceptului de interconectare Poliție – DGASPC – INML – Barou (Legea 217/2003); în această versiune nu există conexiune reală.
       </div>
     </div>
   );

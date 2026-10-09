@@ -125,8 +125,8 @@ export const ConsentManagerScreen: React.FC<ConsentManagerScreenProps> = ({ onBa
         {activeTab === 'consents' && (
           <div className="space-y-2">
             <div className="bg-teal-50 border border-teal-200 rounded-2xl p-2.5 text-teal-950 text-[11px] leading-relaxed">
-              <span className="font-bold block text-teal-900 mb-0.5">Control Total Victima (Principiul Suveranității Datelor):</span>
-              Tu decizi exact ce specialist are dreptul să vadă probele tale. Poți revoca accesul în orice moment cu efect imediat.
+              <span className="font-bold block text-teal-900 mb-0.5">Controlul accesului la datele tale (exemplu):</span>
+              Așa ar arăta lista celor care au acces la probele tale și butonul de revocare. În această versiune nicio instituție nu are acces real; persoanele de mai jos sunt exemple.
             </div>
 
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
@@ -195,8 +195,8 @@ export const ConsentManagerScreen: React.FC<ConsentManagerScreenProps> = ({ onBa
         {activeTab === 'audit_log' && (
           <div className="space-y-2">
             <div className="bg-[#E6F0F8] border border-sky-200 rounded-2xl p-2.5 text-slate-800 text-[11px] leading-relaxed">
-              <span className="font-bold block text-sky-950 mb-0.5">Registru de Securitate Imutabil (Audit Chain):</span>
-              Fiecare vizualizare, descărcare sau export din dosarul tău generează o intrare criptografică permanentă care nu poate fi ștearsă sau falsificată.
+              <span className="font-bold block text-sky-950 mb-0.5">Jurnal local de accesări (exemplu):</span>
+              Intrările de mai jos sunt exemple. În această versiune jurnalul există doar în sesiune și se pierde la reîncărcare; nu este imutabil și nu e partajat cu nicio instituție.
             </div>
 
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
@@ -215,7 +215,7 @@ export const ConsentManagerScreen: React.FC<ConsentManagerScreenProps> = ({ onBa
                   <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 border-t border-stone-100">
                     <span className="truncate max-w-[200px]">Baza legală: {log.legalBasis}</span>
                     <span className="font-mono bg-stone-100 px-1.5 py-0.5 rounded text-stone-600">
-                      Block #{log.immutableBlockIndex}
+                      Nr. {log.immutableBlockIndex}
                     </span>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ export const ConsentManagerScreen: React.FC<ConsentManagerScreenProps> = ({ onBa
 
       {/* Footer Disclaimer */}
       <div className="w-full bg-[#E6F0F8] border border-sky-200 rounded-xl p-2 text-[10px] text-slate-600 text-center">
-        Conformitate RGPD / Legea 217/2003: Accesul se acordă exclusiv în baza principiului "Need-to-Know".
+        Demonstrație: consimțămintele și jurnalul nu sunt stocate și nu sunt partajate cu nimeni.
       </div>
     </div>
   );
