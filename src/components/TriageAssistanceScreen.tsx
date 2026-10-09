@@ -119,6 +119,7 @@ export const TriageAssistanceScreen: React.FC<TriageAssistanceScreenProps> = ({
     }
   ]);
   const [inputText, setInputText] = useState('');
+  const [aiConsent, setAiConsent] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -148,7 +149,8 @@ export const TriageAssistanceScreen: React.FC<TriageAssistanceScreenProps> = ({
         body: JSON.stringify({
           message: textToSend,
           history: chatMessages,
-          contextCategory: activeTab
+          contextCategory: activeTab,
+          aiConsent
         })
       });
 
@@ -432,6 +434,17 @@ export const TriageAssistanceScreen: React.FC<TriageAssistanceScreenProps> = ({
               )}
               <div ref={chatBottomRef} />
             </div>
+
+            {/* AI consent: without it the server answers only from the national crisis protocols */}
+            <label className="flex items-start gap-1.5 pt-1 text-[9px] leading-tight text-slate-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiConsent}
+                onChange={e => setAiConsent(e.target.checked)}
+                className="mt-0.5 accent-emerald-700"
+              />
+              <span>Accept ca mesajele mele, fără date de identificare, să fie procesate de asistentul AI. Fără acord, primesc răspunsuri din protocoalele naționale de criză.</span>
+            </label>
 
             {/* Chat Input Bar */}
             <form

@@ -23,7 +23,7 @@ import {
   DEFAULT_BIOMETRIC_CONFIG,
   DEFAULT_EMERGENCY_SMS_CONFIG
 } from './data/mockData';
-import { generateSha256Hash } from './utils/security';
+import { sealEvidence } from './utils/security';
 import { useVoiceGuardian } from './hooks/useVoiceGuardian';
 import { PhoneFrame } from './components/PhoneFrame';
 import { HomeScreen } from './components/HomeScreen';
@@ -106,13 +106,13 @@ export default function App() {
         fileSize: '1.4 MB',
         duration: '01:00',
         location: 'Str. Victoriei, Sector 1, București',
-        sha256Hash: generateSha256Hash(`voice-sos-rec-${eventTimestamp}-${keyword}`),
+        sha256Hash: '',
         description: `Înregistrare ambientală inițiată automat prin detecție vocală („${keyword}”) în timp ce telefonul rula modul: ${currentMode}.`,
         tags: ['SOS Vocal', 'Urgență 112', 'Înregistrare Automată'],
-        isEncrypted: true,
-        tamperProofVerified: true
+        isEncrypted: false
       };
-      setEvidenceList(prev => [newAudioEvidence, ...prev]);
+      const recordContent = JSON.stringify([evidenceId, 'audio', eventTimestamp, newAudioEvidence.title, newAudioEvidence.description, keyword]);
+      sealEvidence(newAudioEvidence, recordContent).then(sealed => setEvidenceList(prev => [sealed, ...prev]));
     }
 
     // 3. Dispatch action depending on silent mode

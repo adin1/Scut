@@ -1,0 +1,40 @@
+// ─────────────────────────────────────────────────────────────
+// Adaugă acest model în schema.prisma existentă.
+// Rulează apoi: npx prisma migrate dev --name add_audit_ledger
+// și, imediat după, aplică sql/audit_permissions.sql (vezi acel fișier)
+// pentru a bloca UPDATE/DELETE la nivel de bază de date.
+// ─────────────────────────────────────────────────────────────
+
+model AuditEvent {
+  // blockIndex este sursa de adevăr pentru ordine — auto-increment,
+  // garantat monoton și fără goluri de către Postgres.
+  blockIndex Int @id @default(autoincrement()) @map("block_index")
+
+  id               String   @unique @default(uuid())
+  timestamp        DateTime @default(now())
+  actorId          String   @map("actor_id")
+  actorRole        String   @map("actor_role")
+  actorInstitution String?  @map("actor_institution")
+  action           String
+  resourceType     String   @map("resource_type")
+  resourceId       String   @map("resource_id")
+  description      String
+  legalBasis       String?  @map("legal_basis")
+  ipAddress        String?  @map("ip_address")
+  breakGlassReason String?  @map("break_glass_reason")
+
+  // Hash-ul blocului PRECEDENT — ăsta e firul care leagă lanțul.
+  // Pentru blockIndex = 1, se folosește o constantă cunoscută (genesis hash).
+  prevBlockHash String @map("prev_block_hash")
+
+  // SHA-256 al (prevBlockHash + toate câmpurile de mai sus, serializate determinist).
+  blockHash String @unique @map("block_hash")
+
+  // Semnătura digitală a blockHash-ului, produsă de cheia privată a serverului
+  // (sau, ideal, de un KMS/HSM extern). Dovedește AUTENTICITATEA, nu doar integritatea.
+  signature String?
+
+  @@map("audit_events")
+  @@index([resourceId])
+  @@index([actorId])
+}

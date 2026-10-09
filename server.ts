@@ -10,9 +10,81 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '15mb' }));
 
-// In-memory audit events ledger with cryptographic chained hashes
+// ---------------------------------------------------------------------------
+// Institutional access: every staff route requires a bearer token.
+// SCUT_STAFF_TOKENS = JSON map {"<token>": {"actorId","actorRole","actorInstitution"}}.
+// The actor recorded in the audit ledger always comes from the token, never from req.body.
+// ---------------------------------------------------------------------------
+interface StaffIdentity {
+  actorId: string;
+  actorRole: string;
+  actorInstitution: string;
+}
+
+const sha256 = (value: string) => crypto.createHash('sha256').update(value).digest('hex');
+
+function loadStaffTokens(): Map<string, StaffIdentity> {
+  const tokens = new Map<string, StaffIdentity>();
+  const raw = process.env.SCUT_STAFF_TOKENS;
+  if (!raw) return tokens;
+  try {
+    for (const [token, identity] of Object.entries(JSON.parse(raw) as Record<string, StaffIdentity>)) {
+      if (token.length >= 32 && identity?.actorId && identity?.actorRole) {
+        tokens.set(sha256(token), { ...identity, actorInstitution: identity.actorInstitution || 'Nespecificată' });
+      }
+    }
+  } catch {
+    console.error('SCUT_STAFF_TOKENS nu este JSON valid; accesul instituțional rămâne închis.');
+  }
+  return tokens;
+}
+
+// Keyed by the token's hash, so the lookup never compares secrets directly.
+const staffTokens = loadStaffTokens();
+
+const requireStaff: express.RequestHandler = (req, res, next) => {
+  if (staffTokens.size === 0) {
+    return res.status(503).json({ error: 'Accesul instituțional nu este configurat pe acest server.' });
+  }
+  const match = /^Bearer (.+)$/.exec(req.get('authorization') || '');
+  const identity = match ? staffTokens.get(sha256(match[1])) : undefined;
+  if (!identity) {
+    return res.status(401).json({ error: 'Autentificare instituțională necesară.' });
+  }
+  res.locals.staff = identity;
+  next();
+};
+
+// Fixed-window limiter per IP for the public (victim-facing) endpoints.
+function rateLimit(maxRequests: number, windowMs: number): express.RequestHandler {
+  const hits = new Map<string, { count: number; windowStart: number }>();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = req.ip || 'unknown';
+    const entry = hits.get(key);
+    if (!entry || now - entry.windowStart > windowMs) {
+      hits.set(key, { count: 1, windowStart: now });
+      return next();
+    }
+    if (++entry.count > maxRequests) {
+      return res.status(429).json({
+        error: 'Prea multe cereri. Pentru urgențe, apelează 112 sau Helpline ANES 0800.500.333.'
+      });
+    }
+    next();
+  };
+}
+
+const publicLimiter = rateLimit(40, 10 * 60 * 1000);
+
+// ---------------------------------------------------------------------------
+// Audit ledger: hash-chained, append-only. Each block's hash covers the
+// previous block's hash, so editing or deleting any block breaks every
+// block after it. Persistence goes through auditLedger.ts once Prisma is wired in.
+// ---------------------------------------------------------------------------
 interface ServerAuditEvent {
   id: string;
   timestamp: number;
@@ -28,46 +100,138 @@ interface ServerAuditEvent {
   ipAddress?: string;
   breakGlassReason?: string;
   immutableBlockIndex: number;
+  prevBlockHash: string;
   blockHash: string;
 }
 
-const serverAuditLedger: ServerAuditEvent[] = [
-  {
-    id: 'aud-001',
-    timestamp: Date.now() - 1000 * 60 * 35,
-    timeString: 'Azi, 15:55',
-    actorId: 'usr-lawyer-003',
-    actorRole: 'lawyer',
-    actorInstitution: 'Baroul București Pro-Bono',
-    action: 'view',
-    resourceType: 'case',
-    resourceId: 'SCUT-RO-2026-B0892',
-    description: 'Consultare dosar judiciar pentru redactarea cererii de prelungire OP la Judecătorie.',
-    legalBasis: 'Consimțământ victimă #CSNT-889 & Împuternicire Avocațială Seria B/10294',
-    ipAddress: '10.24.8.91 (Rețea Securizată Justiție)',
-    immutableBlockIndex: 1042,
-    blockHash: '0000a4b892f7c08e1d5a7b6c3e2f1a0d8c7b6a5e4d3c2b1a0f9e8d7c6b5a4f3e'
-  }
-];
+type AuditEventInput = Pick<ServerAuditEvent,
+  'actorId' | 'actorRole' | 'actorInstitution' | 'action' | 'resourceType' | 'resourceId' | 'description' | 'legalBasis'
+> & { ipAddress?: string; breakGlassReason?: string; timestamp?: number };
 
-// Initialize Google GenAI client lazily
+const GENESIS_HASH = '0'.repeat(64);
+const serverAuditLedger: ServerAuditEvent[] = [];
+
+// Fixed field order; a separator that cannot appear in normal text keeps fields from running together.
+function hashAuditBlock(block: Omit<ServerAuditEvent, 'blockHash' | 'timeString'>): string {
+  return sha256([
+    block.prevBlockHash,
+    block.immutableBlockIndex,
+    block.id,
+    new Date(block.timestamp).toISOString(),
+    block.actorId,
+    block.actorRole,
+    block.actorInstitution,
+    block.action,
+    block.resourceType,
+    block.resourceId,
+    block.description,
+    block.legalBasis,
+    block.ipAddress ?? '',
+    block.breakGlassReason ?? ''
+  ].join('\u001f'));
+}
+
+function appendAuditEvent(input: AuditEventInput): ServerAuditEvent {
+  const timestamp = input.timestamp ?? Date.now();
+  const prev = serverAuditLedger.at(-1);
+  const block = {
+    ...input,
+    id: `aud-${crypto.randomUUID()}`,
+    timestamp,
+    immutableBlockIndex: serverAuditLedger.length,
+    prevBlockHash: prev ? prev.blockHash : GENESIS_HASH
+  };
+  const event: ServerAuditEvent = {
+    ...block,
+    timeString: new Date(timestamp).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }),
+    blockHash: hashAuditBlock(block)
+  };
+  serverAuditLedger.push(Object.freeze(event));
+  return event;
+}
+
+function verifyAuditChain(): { valid: boolean; blocks: number; brokenAtIndex?: number } {
+  let prevHash = GENESIS_HASH;
+  for (const [index, event] of serverAuditLedger.entries()) {
+    const { blockHash, timeString, ...block } = event;
+    if (event.prevBlockHash !== prevHash || event.immutableBlockIndex !== index || hashAuditBlock(block) !== blockHash) {
+      return { valid: false, blocks: serverAuditLedger.length, brokenAtIndex: index };
+    }
+    prevHash = blockHash;
+  }
+  return { valid: true, blocks: serverAuditLedger.length };
+}
+
+// Demo seed, written through the same chain as every real event.
+appendAuditEvent({
+  timestamp: Date.now() - 1000 * 60 * 35,
+  actorId: 'usr-lawyer-003',
+  actorRole: 'lawyer',
+  actorInstitution: 'Baroul București Pro-Bono',
+  action: 'view',
+  resourceType: 'case',
+  resourceId: 'SCUT-RO-2026-B0892',
+  description: 'Consultare dosar judiciar pentru redactarea cererii de prelungire OP la Judecătorie.',
+  legalBasis: 'Consimțământ victimă #CSNT-889 & Împuternicire Avocațială Seria B/10294',
+  ipAddress: '10.24.8.91 (Rețea Securizată Justiție)'
+});
+
+// ---------------------------------------------------------------------------
+// AI access. Victim data is special-category data (GDPR art. 9), so by default
+// AI runs only through Vertex AI in an EU region. The Gemini Developer API
+// (GEMINI_API_KEY) has no EU data-residency guarantee and needs an explicit
+// SCUT_ALLOW_NON_EU_AI=true. Every text is redacted before it leaves the server.
+// ---------------------------------------------------------------------------
+const AI_MODEL = process.env.SCUT_AI_MODEL || 'gemini-2.5-flash';
+
 let aiClient: GoogleGenAI | null = null;
 function getGenAIClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-  if (!aiClient) {
+  if (aiClient) return aiClient;
+  if (process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' && process.env.GOOGLE_CLOUD_PROJECT) {
     aiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
+      vertexai: true,
+      project: process.env.GOOGLE_CLOUD_PROJECT,
+      location: process.env.GOOGLE_CLOUD_LOCATION || 'europe-west1'
     });
+  } else if (process.env.GEMINI_API_KEY && process.env.SCUT_ALLOW_NON_EU_AI === 'true') {
+    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
   return aiClient;
+}
+
+// Strips direct identifiers before any text reaches the model. Names and
+// addresses are not caught here; the consent text tells the victim not to share them.
+function redactPII(text: string): string {
+  return text
+    .replace(/\b[1-9]\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{6}\b/g, '[CNP]')
+    .replace(/\bRO\d{2}\s?[A-Z]{4}(\s?[0-9A-Z]{4}){4}\b/gi, '[IBAN]')
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[EMAIL]')
+    .replace(/(\+40|0040|\b0)\s?7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}\b/g, '[TELEFON]')
+    .replace(/(\+40|0040|\b0)\s?[23]\d{1,2}[\s.-]?\d{3}[\s.-]?\d{3,4}\b/g, '[TELEFON]')
+    .replace(/\b\d{1,3}\.\d{3,}\s*,\s*\d{1,3}\.\d{3,}\b/g, '[COORDONATE]');
+}
+
+type AiContent = { role?: string; parts: Array<{ text: string }> };
+
+// The only place the server talks to a model, so the provider can be swapped in one function.
+async function generateText(options: {
+  contents: AiContent[];
+  systemInstruction?: string;
+  temperature?: number;
+  responseMimeType?: string;
+}): Promise<string | null> {
+  const ai = getGenAIClient();
+  if (!ai) return null;
+  const response = await ai.models.generateContent({
+    model: AI_MODEL,
+    contents: options.contents.map(c => ({ ...c, parts: c.parts.map(p => ({ text: redactPII(p.text) })) })),
+    config: {
+      systemInstruction: options.systemInstruction,
+      temperature: options.temperature,
+      responseMimeType: options.responseMimeType
+    }
+  });
+  return response.text ?? null;
 }
 
 // Health check endpoint
@@ -76,26 +240,24 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     system: 'SCUT - Infrastructură Digitală Interinstituțională',
     version: '2.0.0-pilot',
-    hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+    aiEnabled: Boolean(getGenAIClient()),
     serverTimeUtc: new Date().toISOString(),
-    eidasTimestampReadiness: 'active_simulated',
-    chainOfCustodyLedgerBlocks: serverAuditLedger.length + 1041
+    eidasTimestampReadiness: 'not_integrated',
+    chainOfCustodyLedgerBlocks: serverAuditLedger.length
   });
 });
 
 // AI Triage Crisis Assistant Endpoint
-app.post('/api/chat/triage', async (req, res) => {
+app.post('/api/chat/triage', publicLimiter, async (req, res) => {
   try {
-    const { message, history, contextCategory } = req.body;
+    const { message, history, contextCategory, aiConsent } = req.body;
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ error: 'Mesajul este obligatoriu.' });
     }
 
-    const ai = getGenAIClient();
-
-    // If Gemini key is available, use real Gemini
-    if (ai) {
+    // Without explicit consent the victim's words never leave the server.
+    if (aiConsent === true && getGenAIClient()) {
       const systemInstruction = `Ești „Asistentul de Criză SCUT”, un modul asistiv de sprijin decizional și informare pentru victimele violenței domestice din România.
 IMPORTANT: Ești un asistent consultativ. Toate recomandările tale sunt strict informative și nu înlocuiesc o decizie juridică, medicală sau polițienească oficială.
 
@@ -115,7 +277,7 @@ PRINCIPII OBLIGATORII:
 6. Păstrează răspunsurile concise, directe și ușor de citit pe un ecran de telefon. Folosește bullet points clare.
 7. Context curent de triage dacă este specificat: ${contextCategory || 'general'}.`;
 
-      const contents: Array<{ role?: string; parts: Array<{ text: string }> }> = [];
+      const contents: AiContent[] = [];
 
       if (Array.isArray(history)) {
         for (const item of history.slice(-6)) {
@@ -129,16 +291,9 @@ PRINCIPII OBLIGATORII:
 
       contents.push({ role: 'user', parts: [{ text: message }] });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          systemInstruction,
-          temperature: 0.3,
-        },
-      });
+      const generated = await generateText({ contents, systemInstruction, temperature: 0.3 });
 
-      const replyText = response.text || 'Suntem aici pentru tine. Dacă ești în pericol iminent, sună la 112 sau apelează gratuit 0800.500.333.';
+      const replyText = generated || 'Suntem aici pentru tine. Dacă ești în pericol iminent, sună la 112 sau apelează gratuit 0800.500.333.';
       return res.json({ 
         reply: replyText, 
         source: 'gemini',
@@ -148,7 +303,7 @@ PRINCIPII OBLIGATORII:
       });
     }
 
-    // Fallback rule-based smart response when no Gemini API key is configured
+    // Rule-based response from the national crisis protocols (no consent, or AI not configured)
     const lower = message.toLowerCase();
     let reply = '';
 
@@ -185,7 +340,7 @@ PRINCIPII OBLIGATORII:
 });
 
 // Assistive OCR & Metadata Summarizer (Assistive AI only - no hallucination of legal facts)
-app.post('/api/ai/ocr-summarize', async (req, res) => {
+app.post('/api/ai/ocr-summarize', requireStaff, async (req, res) => {
   try {
     const { documentText, documentTitle, category } = req.body;
 
@@ -193,8 +348,7 @@ app.post('/api/ai/ocr-summarize', async (req, res) => {
       return res.status(400).json({ error: 'Textul documentului este obligatoriu.' });
     }
 
-    const ai = getGenAIClient();
-    if (ai) {
+    if (getGenAIClient()) {
       const prompt = `Ești un asistent tehnic pentru organizarea dosarelor juridice în sistemul SCUT.
 Analizează textul brut de mai jos extras dintr-un document (${category || 'act'}) intitulat "${documentTitle || 'Document'}".
 Sarcina ta:
@@ -205,14 +359,10 @@ Sarcina ta:
 Text brut:
 ${documentText}`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { temperature: 0.1 }
-      });
+      const summary = await generateText({ contents: [{ role: 'user', parts: [{ text: prompt }] }], temperature: 0.1 });
 
       return res.json({
-        summary: response.text,
+        summary,
         isAiGenerated: true,
         disclaimer: 'Conținut generat automat – necesită verificare umană de către avocat sau ofițerul de caz.'
       });
@@ -220,7 +370,7 @@ ${documentText}`;
 
     // Local fallback extraction
     return res.json({
-      summary: `Rezumat factual extras:\n- Document analizat: ${documentTitle || 'Document'}\n- Conținut verificat pentru conservare probatorie.\n- Conține referințe temporale și date de identificare confirmate.`,
+      summary: `Document primit: ${documentTitle || 'Document'}\n- Rezumatul automat nu este disponibil (AI neconfigurat). Documentul trebuie citit integral de specialist.`,
       isAiGenerated: false,
       disclaimer: 'Extras conform regulilor de indexare locală a probelor.'
     });
@@ -230,15 +380,14 @@ ${documentText}`;
 });
 
 // Chronological Incident Timeline Generator (Assistive AI)
-app.post('/api/ai/timeline-extract', async (req, res) => {
+app.post('/api/ai/timeline-extract', requireStaff, async (req, res) => {
   try {
     const { notesList } = req.body;
     if (!Array.isArray(notesList)) {
       return res.status(400).json({ error: 'Lista de note este obligatorie.' });
     }
 
-    const ai = getGenAIClient();
-    if (ai && notesList.length > 0) {
+    if (getGenAIClient() && notesList.length > 0) {
       const prompt = `Ești un asistent de structurare cronologică pentru dosare de violență domestică în sistemul SCUT.
 Ai următoarele înregistrări factuale:
 ${JSON.stringify(notesList, null, 2)}
@@ -253,13 +402,12 @@ Sarcina ta:
   ]
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+      const generated = await generateText({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { responseMimeType: 'application/json' }
+        responseMimeType: 'application/json'
       });
 
-      const parsed = JSON.parse(response.text || '{"events": []}');
+      const parsed = JSON.parse(generated || '{"events": []}');
       return res.json({
         timeline: parsed.events,
         isAiGenerated: true,
@@ -284,7 +432,7 @@ Sarcina ta:
 });
 
 // Structured Risk Assessment Evaluation Endpoint
-app.post('/api/triage/assess', (req, res) => {
+app.post('/api/triage/assess', publicLimiter, (req, res) => {
   try {
     const { responses } = req.body;
     if (!responses || typeof responses !== 'object') {
@@ -372,38 +520,31 @@ app.post('/api/triage/assess', (req, res) => {
 });
 
 // Digital Evidence Integrity & SHA-256 Verification Endpoint
-app.post('/api/evidence/verify-integrity', (req, res) => {
+app.post('/api/evidence/verify-integrity', requireStaff, (req, res) => {
   try {
     const { expectedHash, contentToVerify, evidenceId } = req.body;
+    const staff: StaffIdentity = res.locals.staff;
 
-    if (!expectedHash) {
-      return res.status(400).json({ error: 'Hash-ul așteptat este obligatoriu.' });
+    if (typeof expectedHash !== 'string' || !/^[0-9a-f]{64}$/i.test(expectedHash)) {
+      return res.status(400).json({ error: 'Hash-ul așteptat trebuie să fie un SHA-256 în format hex (64 de caractere).' });
+    }
+    // Without the content there is nothing to verify; never report a match on the hash alone.
+    if (typeof contentToVerify !== 'string' || contentToVerify.length === 0) {
+      return res.status(400).json({ error: 'Conținutul probei este obligatoriu pentru verificare.' });
     }
 
-    let computedHash = expectedHash;
-    if (contentToVerify) {
-      computedHash = crypto.createHash('sha256').update(contentToVerify).digest('hex');
-    }
+    const computedHash = sha256(contentToVerify);
+    const matches = computedHash === expectedHash.toLowerCase();
 
-    const matches = computedHash.toLowerCase() === expectedHash.toLowerCase();
-
-    // Record verification event in ledger
-    const auditEntry: ServerAuditEvent = {
-      id: `aud-${Date.now()}`,
-      timestamp: Date.now(),
-      timeString: new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }),
-      actorId: 'usr-system-auditor',
-      actorRole: 'auditor',
-      actorInstitution: 'SCUT Verification Gateway',
+    const auditEntry = appendAuditEvent({
+      ...staff,
       action: 'integrity_verify',
       resourceType: 'evidence',
-      resourceId: evidenceId || 'EV-DYNAMIC',
+      resourceId: evidenceId || 'EV-NESPECIFICAT',
       description: `Verificare integritate SHA-256 probă: ${matches ? 'INTEGRITATE CONFIRMATĂ' : 'INTEGRITATE COMPROMISĂ'}`,
-      legalBasis: 'Standard conservare probe digitale eIDAS / CPP Art. 197',
-      immutableBlockIndex: serverAuditLedger.length + 1042,
-      blockHash: crypto.createHash('sha256').update(`${Date.now()}-${evidenceId}-${matches}`).digest('hex')
-    };
-    serverAuditLedger.push(auditEntry);
+      legalBasis: 'Verificare integritate probă digitală',
+      ipAddress: req.ip
+    });
 
     return res.json({
       evidenceId,
@@ -412,45 +553,42 @@ app.post('/api/evidence/verify-integrity', (req, res) => {
       matches,
       algorithm: 'SHA-256',
       status: matches ? 'verified' : 'integrity_failed',
-      auditLedgerBlockIndex: auditEntry.immutableBlockIndex,
-      disclaimer: 'Probe digitale conservate într-un format conceput pentru verificarea autenticității, integrității, originii și momentului colectării.'
+      auditLedgerBlockIndex: auditEntry.immutableBlockIndex
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Audit Logs Ledger Endpoint (Append-only)
-app.get('/api/audit-logs', (req, res) => {
+// Audit Logs Ledger Endpoint (Append-only); the chain status is recomputed on every read.
+app.get('/api/audit-logs', requireStaff, (req, res) => {
+  const chain = verifyAuditChain();
   return res.json({
-    totalBlocks: serverAuditLedger.length + 1041,
+    totalBlocks: chain.blocks,
     logs: serverAuditLedger,
-    ledgerTamperProofStatus: 'immutable_verified'
+    ledgerTamperProofStatus: chain.valid ? 'chain_verified' : 'chain_broken',
+    brokenAtIndex: chain.brokenAtIndex
   });
 });
 
-app.post('/api/audit-logs', (req, res) => {
+app.post('/api/audit-logs', requireStaff, (req, res) => {
   try {
-    const { actorId, actorRole, actorInstitution, action, resourceType, resourceId, description, legalBasis, ipAddress } = req.body;
-    
-    const newEntry: ServerAuditEvent = {
-      id: `aud-${Date.now()}`,
-      timestamp: Date.now(),
-      timeString: new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }),
-      actorId: actorId || 'usr-anonymous',
-      actorRole: actorRole || 'victim',
-      actorInstitution: actorInstitution || 'Titular Dosar',
-      action: action || 'view',
-      resourceType: resourceType || 'case',
-      resourceId: resourceId || 'CASE-001',
-      description: description || 'Accesare securizată',
-      legalBasis: legalBasis || 'RGPD Art. 6 / Legea 217/2003',
-      ipAddress: ipAddress || 'Client HTTPS Enclave',
-      immutableBlockIndex: serverAuditLedger.length + 1042,
-      blockHash: crypto.createHash('sha256').update(`${Date.now()}-${action}-${resourceId}`).digest('hex')
-    };
+    const { action, resourceType, resourceId, description, legalBasis } = req.body;
+    const staff: StaffIdentity = res.locals.staff;
 
-    serverAuditLedger.push(newEntry);
+    if (!action || !resourceType || !resourceId || !legalBasis) {
+      return res.status(400).json({ error: 'Acțiunea, resursa și temeiul legal sunt obligatorii.' });
+    }
+
+    const newEntry = appendAuditEvent({
+      ...staff,
+      action,
+      resourceType,
+      resourceId,
+      description: description || '',
+      legalBasis,
+      ipAddress: req.ip
+    });
     return res.json({ success: true, entry: newEntry });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -458,37 +596,33 @@ app.post('/api/audit-logs', (req, res) => {
 });
 
 // Break-Glass Emergency Access Logging
-app.post('/api/break-glass', (req, res) => {
+app.post('/api/break-glass', requireStaff, (req, res) => {
   try {
-    const { caseId, actorName, actorRole, actorInstitution, mandatoryReason, legalGrounds } = req.body;
+    const { caseId, mandatoryReason, legalGrounds } = req.body;
+    const staff: StaffIdentity = res.locals.staff;
 
+    if (!caseId) {
+      return res.status(400).json({ error: 'Identificatorul dosarului este obligatoriu.' });
+    }
     if (!mandatoryReason || mandatoryReason.length < 15) {
       return res.status(400).json({ error: 'Justificarea de urgență este obligatorie (minim 15 caractere).' });
     }
 
-    const breakGlassEntry: ServerAuditEvent = {
-      id: `bg-${Date.now()}`,
-      timestamp: Date.now(),
-      timeString: new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }),
-      actorId: actorName || 'Ofițer Intervenție 112',
-      actorRole: actorRole || 'police',
-      actorInstitution: actorInstitution || 'Dispecerat 112 Poliție',
+    const breakGlassEntry = appendAuditEvent({
+      ...staff,
       action: 'break_glass',
       resourceType: 'case',
-      resourceId: caseId || 'SCUT-RO-2026-B0892',
+      resourceId: caseId,
       description: `ACCES EXCEPȚIONAL DE URGENȚĂ (BREAK-GLASS): ${mandatoryReason}`,
-      legalBasis: legalGrounds || 'Stare de necesitate / CPP Art. 209 / Pericol iminent viață',
+      legalBasis: legalGrounds || 'Stare de necesitate / Pericol iminent viață',
       breakGlassReason: mandatoryReason,
-      immutableBlockIndex: serverAuditLedger.length + 1042,
-      blockHash: crypto.createHash('sha256').update(`BREAK_GLASS-${Date.now()}-${mandatoryReason}`).digest('hex')
-    };
+      ipAddress: req.ip
+    });
 
-    serverAuditLedger.push(breakGlassEntry);
     return res.json({
       success: true,
-      message: 'Accesul de urgență a fost acordat și înregistrat ireversibil în registrul de audit.',
-      blockIndex: breakGlassEntry.immutableBlockIndex,
-      notice: 'Victima și auditorul de securitate vor fi notificați cu privire la accesarea dosarului.'
+      message: 'Accesul de urgență a fost acordat și înregistrat în registrul de audit.',
+      blockIndex: breakGlassEntry.immutableBlockIndex
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -496,39 +630,56 @@ app.post('/api/break-glass', (req, res) => {
 });
 
 // Court Evidentiary Package Manifest Generator
-app.post('/api/court/generate-package', (req, res) => {
+app.post('/api/court/generate-package', requireStaff, (req, res) => {
   try {
     const { caseId, evidenceList, recipientRole, legalCaseNumber } = req.body;
+    const staff: StaffIdentity = res.locals.staff;
 
-    const manifestItems = (evidenceList || []).map((ev: any, idx: number) => ({
+    if (!caseId || !Array.isArray(evidenceList)) {
+      return res.status(400).json({ error: 'Dosarul și lista de probe sunt obligatorii.' });
+    }
+
+    // The server does not hold the originals, so it lists fingerprints as declared
+    // and leaves verification to /api/evidence/verify-integrity on the original content.
+    const manifestItems = evidenceList.map((ev: any, idx: number) => ({
       itemNumber: idx + 1,
-      evidenceId: ev.evidenceId || `EV-${idx + 1}`,
+      evidenceId: ev.evidenceId || ev.id || `EV-${idx + 1}`,
       title: ev.title,
       category: ev.category,
-      sha256Hash: ev.sha256Hash || crypto.createHash('sha256').update(ev.title || 'ev').digest('hex'),
+      sha256Hash: typeof ev.sha256Hash === 'string' && /^[0-9a-f]{64}$/i.test(ev.sha256Hash) ? ev.sha256Hash : null,
       dateCreated: ev.dateCreated,
       originalVsDerived: ev.originalVsDerived || 'original',
-      verifiedIntegrity: true
+      integrityStatus: 'declared_not_verified'
     }));
 
     const manifestData = {
-      packageId: `PKG-RO-${Date.now().toString().slice(-6)}`,
-      caseId: caseId || 'SCUT-RO-2026-B0892',
-      legalCaseNumber: legalCaseNumber || 'DOSAR-JUD-2026-11892',
+      packageId: `PKG-RO-${crypto.randomUUID()}`,
+      caseId,
+      legalCaseNumber: legalCaseNumber || null,
       generatedAt: new Date().toISOString(),
-      recipient: recipientRole || 'Instanța de Judecată / Baroul București',
+      generatedBy: staff,
+      recipient: recipientRole || null,
       status: 'Pachet probatoriu pregătit pentru transmitere',
-      standardsCompliance: ['PDF/A-2b', 'eIDAS Qualified Timestamp Ready', 'SHA-256 Digital Chain of Custody'],
+      standardsCompliance: ['SHA-256 fingerprints per item', 'Hash-chained audit ledger'],
       evidenceItemsCount: manifestItems.length,
       items: manifestItems
     };
 
-    const packageSha256 = crypto.createHash('sha256').update(JSON.stringify(manifestData)).digest('hex');
+    const packageSha256 = sha256(JSON.stringify(manifestData));
+
+    appendAuditEvent({
+      ...staff,
+      action: 'court_package',
+      resourceType: 'case',
+      resourceId: caseId,
+      description: `Pachet probatoriu generat (${manifestItems.length} probe), SHA-256 manifest ${packageSha256}`,
+      legalBasis: 'Transmitere probe către instanță',
+      ipAddress: req.ip
+    });
 
     return res.json({
       ...manifestData,
-      packageSha256Manifest: packageSha256,
-      disclaimer: 'Probe digitale conservate într-un format conceput pentru verificarea autenticității, integrității, originii și momentului colectării.'
+      packageSha256Manifest: packageSha256
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

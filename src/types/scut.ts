@@ -203,6 +203,7 @@ export interface Evidence {
   uploaderUserId?: string;
   uploaderRole?: InstitutionalRole;
   isEncrypted: boolean;
+  encryptedPayload?: { algorithm: 'AES-256-GCM'; iv: string; ciphertext: string };
   description: string;
   tags: string[];
   mediaUrl?: string;

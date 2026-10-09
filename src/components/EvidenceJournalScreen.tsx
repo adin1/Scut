@@ -27,7 +27,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
-import { generateSha256Hash, formatTime } from '../utils/security';
+import { sealEvidence, formatTime } from '../utils/security';
 import { AesEncryptionModal } from './AesEncryptionModal';
 import { ZipExportModal } from './ZipExportModal';
 
@@ -68,6 +68,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   const [docTags, setDocTags] = useState('Document oficial, INML, Probă Judiciară');
   const [uploadedFileName, setUploadedFileName] = useState<string>('certificat_inml_2026.pdf');
   const [uploadedFileSize, setUploadedFileSize] = useState<string>('2.4 MB');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Audio record simulation state
@@ -89,8 +90,12 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
     setAudioTimer(timer);
   };
 
-  const startEncryptionProcess = (item: EvidenceItem) => {
-    setPendingEncryptionItem(item);
+  // Simulated captures have no media bytes yet, so their seal covers the record itself.
+  const recordContent = (item: EvidenceItem) =>
+    JSON.stringify([item.id, item.category, item.timestamp, item.title, item.description, item.duration ?? '', item.location ?? '']);
+
+  const startEncryptionProcess = async (item: EvidenceItem, content: string | ArrayBuffer = recordContent(item)) => {
+    setPendingEncryptionItem(await sealEvidence(item, content));
     setIsEncryptionModalOpen(true);
   };
 
@@ -121,10 +126,9 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       tags: ['Audio Probă', 'Ambiental', 'AES-256 GCM'],
       fileSize: `${((recordSeconds || 12) * 0.08).toFixed(1)} MB`,
       duration: formatTime(recordSeconds || 12),
-      sha256Hash: generateSha256Hash(`audio-${Date.now()}`),
+      sha256Hash: '',
       location: 'Locație Securizată (44.4378, 26.0946)',
-      isEncrypted: true,
-      tamperProofVerified: true
+      isEncrypted: false
     };
 
     setActiveModal(null);
@@ -142,10 +146,9 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       tags: ['Leziuni', 'Foto Izolată', 'Probă Juridică'],
       fileSize: '3.1 MB',
       mediaUrl: 'https://images.unsplash.com/photo-1584467735815-f778f274e296?auto=format&fit=crop&w=600&q=80',
-      sha256Hash: generateSha256Hash(`photo-${Date.now()}`),
+      sha256Hash: '',
       location: 'București (44.4378, 26.0946)',
-      isEncrypted: true,
-      tamperProofVerified: true
+      isEncrypted: false
     };
 
     setActiveModal(null);
@@ -165,20 +168,20 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       description: noteContent || 'Notă detaliată despre incident, dată, martori și comportamentul agresorului.',
       tags: noteTags.split(',').map(t => t.trim()).filter(Boolean),
       fileSize: '0.4 MB',
-      sha256Hash: generateSha256Hash(noteContent + noteTitle),
-      isEncrypted: true,
-      tamperProofVerified: true
+      sha256Hash: '',
+      isEncrypted: false
     };
 
     setNoteTitle('');
     setNoteContent('');
     setActiveModal(null);
-    startEncryptionProcess(newItem);
+    startEncryptionProcess(newItem, JSON.stringify({ title: noteTitle, content: noteContent }));
   };
 
   const handleRealFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setUploadedFile(file);
       setUploadedFileName(file.name);
       const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
       setUploadedFileSize(`${sizeMb} MB`);
@@ -186,7 +189,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
     }
   };
 
-  const handleSaveDocument = () => {
+  const handleSaveDocument = async () => {
     const newItem: EvidenceItem = {
       id: `ev-doc-${Date.now()}`,
       title: docTitle || 'Document Oficial Criptat',
@@ -196,13 +199,15 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       description: docDescription || `Fișier "${uploadedFileName}" încărcat și convertit în format securizat cu hash de integritate.`,
       tags: docTags.split(',').map(t => t.trim()).filter(Boolean),
       fileSize: uploadedFileSize || '1.8 MB',
-      sha256Hash: generateSha256Hash(`doc-${Date.now()}-${uploadedFileName}`),
-      isEncrypted: true,
-      tamperProofVerified: true
+      sha256Hash: '',
+      mimeType: uploadedFile?.type || undefined,
+      isEncrypted: false
     };
 
     setActiveModal(null);
-    startEncryptionProcess(newItem);
+    // The fingerprint covers the uploaded file's bytes, so anyone holding the original can re-verify it.
+    startEncryptionProcess(newItem, uploadedFile ? await uploadedFile.arrayBuffer() : undefined);
+    setUploadedFile(null);
   };
 
   return (

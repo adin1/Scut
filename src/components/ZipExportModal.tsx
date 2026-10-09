@@ -20,7 +20,7 @@ import {
   RefreshCw,
   Share2
 } from 'lucide-react';
-import JSZip from 'jszip';
+import { BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
 import { EvidenceItem } from '../types/scut';
 
 interface ZipExportModalProps {
@@ -93,7 +93,8 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
     setExportStepText('1/5: Extragere probe din Sandbox-ul izolat SCUT...');
 
     try {
-      const zip = new JSZip();
+      // Every entry is collected first, then written into a WinZip-AES-256 encrypted archive.
+      const files: Array<[string, string]> = [];
       const timestampStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const zipName = `SCUT_DOSAR_PROBE_LEGAL_${timestampStr}.zip`;
 
@@ -110,8 +111,8 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       manifestText += `REFERINȚĂ CAZ: ${caseReference}\n`;
       manifestText += `DATA EXPORTULUI: ${new Date().toLocaleString('ro-RO')}\n`;
       manifestText += `NUMĂR TOTAL PROBE: ${evidenceList.length}\n`;
-      manifestText += `ALGORITM DE CRIPTARE APLICAT: AES-256-GCM / PBKDF2 Key Derivation\n`;
-      manifestText += `STARE SIGILIU: INTEGRITATE VERIFICATĂ FĂRĂ ALTERARE (TAMPER-PROOF)\n\n`;
+      manifestText += `CRIPTAREA ARHIVEI: ZIP AES-256 (WinZip AES), protejată cu parolă\n`;
+      manifestText += `VERIFICARE: amprentele SHA-256 de mai jos se pot recalcula pe originalele probelor\n\n`;
       manifestText += `------------------------------------------------------------------------\n`;
       manifestText += `                      INDEXUL CRONOLOGIC AL PROBELOR\n`;
       manifestText += `------------------------------------------------------------------------\n\n`;
@@ -127,7 +128,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
         manifestText += `  Descriere: ${item.description}\n`;
         manifestText += `  Etichete Judiciare: ${item.tags.join(', ')}\n`;
         manifestText += `  Amprentă SHA-256 (Hash Integritate): ${item.sha256Hash}\n`;
-        manifestText += `  Stare Seif: Criptat AES-256 GCM (Validat)\n\n`;
+        manifestText += `  Stare Seif: ${item.isEncrypted ? 'Criptat AES-256-GCM în seiful SCUT' : 'Necriptat'}\n\n`;
       });
 
       manifestText += `========================================================================\n`;
@@ -144,10 +145,11 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
           caseReference: caseReference,
           exportTimestamp: new Date().toISOString(),
           totalEvidenceCount: evidenceList.length,
-          encryptionStandard: 'AES-256-GCM',
+          encryptionStandard: 'ZIP AES-256 (WinZip AES)',
           tamperProofStandard: 'Law 217/2003 Romania'
         },
-        items: evidenceList
+        // The vault ciphertext is bound to the device's session key and useless to the recipient.
+        items: evidenceList.map(({ encryptedPayload, ...item }) => item)
       };
 
       // 3. Instructions for Lawyer
@@ -158,8 +160,8 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       lawyerInstructions += `Ați primit arhiva securizată a probelor colectate prin platforma SCUT.\n`;
       lawyerInstructions += `Toate fișierele și jurnalele de incident sunt protejate cu parola stabilită de victimă.\n\n`;
       lawyerInstructions += `PAȘI PENTRU DESCHIDEREA DOSARULUI:\n`;
-      lawyerInstructions += `1. Deschideți arhiva ZIP folosind orice utilitar standard (7-Zip, WinRAR, Windows Explorer, macOS Archive Utility).\n`;
-      lawyerInstructions += `2. Când vi se solicită parola, introduceți parola comunicată de clientă prin canal securizat.\n`;
+      lawyerInstructions += `1. Deschideți arhiva cu 7-Zip sau WinRAR (Windows) ori Keka (macOS). Exploratorul Windows nu deschide arhive criptate AES-256.\n`;
+      lawyerInstructions += `2. Când vi se solicită parola, introduceți parola primită separat de arhivă (de exemplu, telefonic).\n`;
       lawyerInstructions += `3. În interior veți găsi directoarele organizate pe categorii (Audio, Foto, Documente INML, Declarații) precum și indexul judiciar 'INDEX_DOSAR_PROBE.txt'.\n`;
       lawyerInstructions += `4. Amprentele SHA-256 din index pot fi depuse direct la dosarul pentru emiterea Ordinului de Protecție (OP / OPP).\n\n`;
       lawyerInstructions += `ASISTENȚĂ: Platforma SCUT oferă suport juridic pro-bono în parteneriat cu rețeaua ONG-urilor acreditate.\n`;
@@ -169,61 +171,50 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       setExportStepText('3/5: Împachetare probe audio, documente și înscrisuri...');
 
       // Add main docs to zip root
-      zip.file('INDEX_DOSAR_PROBE_LEGEA_217.txt', manifestText);
-      zip.file('DOSAR_PROBE_STRUCTURAT.json', JSON.stringify(manifestJson, null, 2));
-      zip.file('INSTRUCTIUNI_PENTRU_AVOCAT.txt', lawyerInstructions);
-
-      // Create folders in zip
-      const audioFolder = zip.folder('probe_audio_ambientale');
-      const photoFolder = zip.folder('probe_foto_leziuni_daune');
-      const docFolder = zip.folder('documente_medicale_inml');
-      const noteFolder = zip.folder('declaratii_jurnal_incidente');
+      files.push(['INDEX_DOSAR_PROBE_LEGEA_217.txt', manifestText]);
+      files.push(['DOSAR_PROBE_STRUCTURAT.json', JSON.stringify(manifestJson, null, 2)]);
+      files.push(['INSTRUCTIUNI_PENTRU_AVOCAT.txt', lawyerInstructions]);
 
       // Populate evidence files into folders
       evidenceList.forEach((item, i) => {
         const fileContent = `ID PROBĂ: ${item.id}\nTITLU: ${item.title}\nDATĂ: ${item.date}\nLOCAȚIE: ${item.location || 'București (Locație Protejată)'}\nSHA-256: ${item.sha256Hash}\n\nDESCRIERE DETALIATĂ:\n${item.description}\n\nETICHETE:\n${item.tags.join(', ')}\n\n[PROBĂ ORIGINALĂ IZOLATĂ ÎN SANDBOX SCUT]`;
 
         if (item.category === 'audio') {
-          audioFolder?.file(`AUDIO_${i + 1}_${item.id}.txt`, fileContent);
-          audioFolder?.file(`AUDIO_${i + 1}_METRICI_AMPRENTA_VOCALA.json`, JSON.stringify({
+          files.push([`probe_audio_ambientale/AUDIO_${i + 1}_${item.id}.txt`, fileContent]);
+          files.push([`probe_audio_ambientale/AUDIO_${i + 1}_METRICI_AMPRENTA_VOCALA.json`, JSON.stringify({
             id: item.id,
             duration: item.duration || '00:15',
             audioChannels: 'Mono 44.1kHz',
-            sha256: item.sha256Hash,
-            decryptedSignatureValid: true
-          }, null, 2));
+            sha256: item.sha256Hash
+          }, null, 2)]);
         } else if (item.category === 'photo') {
-          photoFolder?.file(`FOTO_${i + 1}_${item.id}.txt`, fileContent);
+          files.push([`probe_foto_leziuni_daune/FOTO_${i + 1}_${item.id}.txt`, fileContent]);
           if (item.mediaUrl) {
-            photoFolder?.file(`FOTO_${i + 1}_METADATE_WATERMARK.json`, JSON.stringify({
+            files.push([`probe_foto_leziuni_daune/FOTO_${i + 1}_METADATE_WATERMARK.json`, JSON.stringify({
               id: item.id,
               originalUrl: item.mediaUrl,
               watermarkTimestamp: item.date,
               sha256: item.sha256Hash
-            }, null, 2));
+            }, null, 2)]);
           }
         } else if (item.category === 'document') {
-          docFolder?.file(`DOC_${i + 1}_${item.id}.txt`, fileContent);
-          docFolder?.file(`DOC_${i + 1}_CERTIFICAT_INTEGRITATE.txt`, `CERTIFICARE MEDICAL-LEGALĂ\nDocument: ${item.title}\nAmprentă SHA-256: ${item.sha256Hash}\nConformitate Art. 282 CPP: VALID`);
+          files.push([`documente_medicale_inml/DOC_${i + 1}_${item.id}.txt`, fileContent]);
+          files.push([`documente_medicale_inml/DOC_${i + 1}_AMPRENTA_INTEGRITATE.txt`, `Document: ${item.title}\nAmprentă SHA-256: ${item.sha256Hash}\nRecalculați SHA-256 pe fișierul original pentru a confirma că nu a fost modificat.`]);
         } else {
-          noteFolder?.file(`DECLARATIE_${i + 1}_${item.id}.txt`, fileContent);
+          files.push([`declaratii_jurnal_incidente/DECLARATIE_${i + 1}_${item.id}.txt`, fileContent]);
         }
       });
 
-      // Encrypted Master Container simulation with password protection header
-      const protectedBlobInfo = `[SCUT_AES_256_CONTAINER_PROTECTED]\nVAULT_PASSWORD_HASH_VERIFY: ${btoa(password).slice(0, 16)}\nCIPHER: AES-256-GCM\nKEY_DERIVATION: PBKDF2_SHA256_100000_ROUNDS\nRECIPIENT: ${recipientName}\nCREATION_DATE: ${new Date().toISOString()}\n\n--BEGIN SCUT ENCRYPTED PAYLOAD--\n${btoa(encodeURIComponent(manifestText.slice(0, 500)))}\n--END SCUT ENCRYPTED PAYLOAD--`;
-      zip.file('CONTAINER_SEIF_CRIPTAT_AES256.enc', protectedBlobInfo);
-
       await new Promise(r => setTimeout(r, 400));
       setExportProgress(85);
-      setExportStepText('4/5: Aplicare container ZIP & semnare digitală...');
+      setExportStepText('4/5: Criptare arhivă ZIP cu AES-256...');
 
-      // Generate the ZIP Blob
-      const zipBlob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 9 }
-      });
+      // encryptionStrength 3 = AES-256; opens in 7-Zip, WinRAR and Keka with the password.
+      const zipWriter = new ZipWriter(new BlobWriter('application/zip'), { password, encryptionStrength: 3 });
+      for (const [entryPath, entryContent] of files) {
+        await zipWriter.add(entryPath, new TextReader(entryContent));
+      }
+      const zipBlob = await zipWriter.close();
 
       await new Promise(r => setTimeout(r, 300));
       setExportProgress(100);
@@ -256,8 +247,7 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
     `Referință: ${caseReference}\n` +
     `Fișier Arhivă: ${generatedFileName || 'SCUT_DOSAR_PROBE_LEGAL.zip'}\n` +
     `Număr Probe: ${evidenceList.length} probe (Audio, Foto, Documente INML, Declarații)\n` +
-    `Parola de Decriptare: ${password}\n\n` +
-    `Vă rugăm să utilizați parola de mai sus pentru dezarhivarea probelor conform Legii 217/2003.`;
+    `Parola de decriptare vă va fi comunicată separat, pe alt canal (de exemplu, telefonic).`;
 
   const copyToClipboard = (text: string, isSummary: boolean) => {
     navigator.clipboard.writeText(text);
