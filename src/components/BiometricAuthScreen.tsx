@@ -45,6 +45,20 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
   const [useRealCamera, setUseRealCamera] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const holdTimerRef = useRef<any>(null);
+  // Every scan timer is tracked so none can fire after the gate has decided or unmounted;
+  // a late auto-scan used to call onSuccess again and pull the user out of whatever screen they had opened.
+  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const decidedRef = useRef(false);
+
+  const later = (fn: () => void, ms: number) => {
+    pendingTimeoutsRef.current.push(setTimeout(fn, ms));
+  };
+
+  const stopFaceScan = () => {
+    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    scanIntervalRef.current = null;
+  };
 
   // Trigger Haptics
   const triggerHaptic = (pattern: number[]) => {
@@ -70,6 +84,8 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
         stream.getTracks().forEach(t => t.stop());
       }
       if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+      stopFaceScan();
+      pendingTimeoutsRef.current.forEach(clearTimeout);
     };
   }, []);
 
@@ -82,7 +98,8 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
     triggerHaptic([30]);
 
     let currentProgress = 0;
-    const interval = setInterval(() => {
+    stopFaceScan();
+    scanIntervalRef.current = setInterval(() => {
       currentProgress += 20;
       setProgress(currentProgress);
 
@@ -94,23 +111,26 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
         setStatusMessage('Decriptare cheie Secure Enclave...');
         triggerHaptic([40, 20, 40]);
       } else if (currentProgress >= 100) {
-        clearInterval(interval);
+        stopFaceScan();
         handleScanSuccess();
       }
     }, 280);
   };
 
   const handleScanSuccess = () => {
+    if (decidedRef.current) return;
+    decidedRef.current = true;
+    stopFaceScan();
     setStatus('success');
     setStatusMessage('Identitate confirmată • Acces acordat');
     triggerHaptic([60, 40, 100]);
 
-    setTimeout(() => {
-      onSuccess();
-    }, 650);
+    later(onSuccess, 650);
   };
 
   const handleScanFailure = (reason = 'Trăsături nerecunoscute') => {
+    if (decidedRef.current) return;
+    stopFaceScan();
     setStatus('failed');
     setStatusMessage(`Eșec autentificare: ${reason}`);
     triggerHaptic([100, 50, 100, 50, 150]);
@@ -118,12 +138,13 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
     setFailedAttempts(nextFailed);
 
     if (nextFailed >= config.maxFailedAttempts) {
-      setTimeout(() => {
+      decidedRef.current = true;
+      later(() => {
         // Automatic safe lockout -> fallback to calculator or decoy
         onCancel();
       }, 1500);
     } else {
-      setTimeout(() => {
+      later(() => {
         setStatus('idle');
         setProgress(0);
         setStatusMessage('Apasă pentru reîncercare');
@@ -132,13 +153,14 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
   };
 
   const handleDuressScan = () => {
+    if (decidedRef.current) return;
+    decidedRef.current = true;
+    stopFaceScan();
     setStatus('duress_triggered');
     setStatusMessage('Verificare forțată detectată • Activare protocol silențios');
     triggerHaptic([200, 100, 200]);
 
-    setTimeout(() => {
-      onDuressTrigger();
-    }, 800);
+    later(onDuressTrigger, 800);
   };
 
   // Touch & Hold Fingerprint Logic
@@ -160,9 +182,7 @@ export const BiometricAuthScreen: React.FC<BiometricAuthScreenProps> = ({
         setStatus('analyzing');
         setStatusMessage('Potrivire minunții amprentă digitală...');
         triggerHaptic([50, 30, 80]);
-        setTimeout(() => {
-          handleScanSuccess();
-        }, 350);
+        later(handleScanSuccess, 350);
       }
     }, 100);
   };

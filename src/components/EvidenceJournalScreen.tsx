@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   FolderLock, 
   Plus, 
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { EvidenceItem } from '../types/scut';
 import { sealEvidence, formatTime } from '../utils/security';
+import { AudioCapture, capturePhotoFrame, describeMediaError, formatBytes, openCamera, stopStream } from '../utils/mediaCapture';
 import { AesEncryptionModal } from './AesEncryptionModal';
 import { ZipExportModal } from './ZipExportModal';
 
@@ -71,26 +72,78 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Audio record simulation state
+  // Real microphone / camera capture state
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
-  const [audioTimer, setAudioTimer] = useState<NodeJS.Timeout | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const audioCaptureRef = useRef<AudioCapture | null>(null);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const filteredEvidence = evidenceList.filter(item => {
     if (activeTab === 'all') return true;
     return item.category === activeTab;
   });
 
-  const handleStartAudioRecord = () => {
-    setIsRecording(true);
-    setRecordSeconds(0);
-    const timer = setInterval(() => {
-      setRecordSeconds(prev => prev + 1);
-    }, 1000);
-    setAudioTimer(timer);
+  // The camera is on only while its modal is open.
+  useEffect(() => {
+    if (activeModal !== 'camera') return;
+    let cancelled = false;
+    setCaptureError(null);
+    setIsCameraReady(false);
+    openCamera()
+      .then(stream => {
+        if (cancelled) return stopStream(stream);
+        cameraStreamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      })
+      .catch(err => {
+        if (!cancelled) setCaptureError(describeMediaError(err, 'camera'));
+      });
+    return () => {
+      cancelled = true;
+      stopStream(cameraStreamRef.current);
+      cameraStreamRef.current = null;
+    };
+  }, [activeModal]);
+
+  // Closing the audio modal mid-recording discards the recording and frees the microphone.
+  const discardRecording = () => {
+    audioCaptureRef.current?.cancel();
+    audioCaptureRef.current = null;
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    recordTimerRef.current = null;
+    setIsRecording(false);
   };
 
-  // Simulated captures have no media bytes yet, so their seal covers the record itself.
+  useEffect(() => {
+    if (activeModal !== 'audio') discardRecording();
+    if (activeModal === 'audio') setCaptureError(null);
+  }, [activeModal]);
+
+  useEffect(() => discardRecording, []);
+
+  const handleStartAudioRecord = async () => {
+    setCaptureError(null);
+    const capture = new AudioCapture();
+    try {
+      await capture.start();
+    } catch (err) {
+      setCaptureError(describeMediaError(err, 'microfonul'));
+      return;
+    }
+    audioCaptureRef.current = capture;
+    setRecordSeconds(0);
+    setIsRecording(true);
+    recordTimerRef.current = setInterval(() => setRecordSeconds(prev => prev + 1), 1000);
+  };
+
+  // Items with no media bytes (a document saved without a file) are sealed over the record itself.
   const recordContent = (item: EvidenceItem) =>
     JSON.stringify([item.id, item.category, item.timestamp, item.title, item.description, item.duration ?? '', item.location ?? '']);
 
@@ -100,7 +153,10 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
   };
 
   const handleEncryptionComplete = (encryptedItem: EvidenceItem) => {
-    onAddEvidence(encryptedItem);
+    // Re-opening the modal to inspect an existing item must not add a duplicate.
+    if (!evidenceList.some(item => item.id === encryptedItem.id)) {
+      onAddEvidence(encryptedItem);
+    }
     setIsEncryptionModalOpen(false);
     setRecentlyEncryptedId(encryptedItem.id);
     setPendingEncryptionItem(null);
@@ -111,48 +167,68 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
     }, 4000);
   };
 
-  const handleStopAudioRecord = () => {
-    if (audioTimer) clearInterval(audioTimer);
+  const evidenceDate = () =>
+    new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const handleStopAudioRecord = async () => {
+    const capture = audioCaptureRef.current;
+    if (!capture) return;
+    audioCaptureRef.current = null;
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    recordTimerRef.current = null;
     setIsRecording(false);
-    
-    // Create new audio evidence item
+
+    const blob = await capture.stop();
+    const now = Date.now();
     const newItem: EvidenceItem = {
-      id: `ev-audio-${Date.now()}`,
-      title: `Înregistrare Audio Nouă (${formatTime(recordSeconds || 12)})`,
+      id: `ev-audio-${now}`,
+      title: `Înregistrare Audio (${formatTime(recordSeconds)})`,
       category: 'audio',
-      date: new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      timestamp: Date.now(),
-      description: 'Înregistrare audio ambientală captată securizat în sandbox.',
-      tags: ['Audio Probă', 'Ambiental', 'AES-256 GCM'],
-      fileSize: `${((recordSeconds || 12) * 0.08).toFixed(1)} MB`,
-      duration: formatTime(recordSeconds || 12),
+      date: evidenceDate(),
+      timestamp: now,
+      description: 'Înregistrare audio ambientală captată cu microfonul, păstrată doar în seiful SCUT.',
+      tags: ['Audio Probă', 'Ambiental'],
+      fileSize: formatBytes(blob.size),
+      duration: formatTime(recordSeconds),
+      mimeType: blob.type,
+      mediaUrl: URL.createObjectURL(blob),
+      source: 'direct_microphone',
       sha256Hash: '',
-      location: 'Locație Securizată (44.4378, 26.0946)',
       isEncrypted: false
     };
 
     setActiveModal(null);
-    startEncryptionProcess(newItem);
+    startEncryptionProcess(newItem, await blob.arrayBuffer());
   };
 
-  const handleSavePhotoSimulation = () => {
+  const handleCapturePhoto = async () => {
+    if (!videoRef.current) return;
+    let blob: Blob;
+    try {
+      blob = await capturePhotoFrame(videoRef.current);
+    } catch (err) {
+      setCaptureError(describeMediaError(err, 'camera'));
+      return;
+    }
+    const now = Date.now();
     const newItem: EvidenceItem = {
-      id: `ev-photo-${Date.now()}`,
-      title: 'Fotografie Probă (Vătămare corporală / Daune)',
+      id: `ev-photo-${now}`,
+      title: 'Fotografie Probă',
       category: 'photo',
-      date: new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      timestamp: Date.now(),
-      description: 'Fotografie realizată prin camera internă SCUT cu watermark criptografic de timp și locație. Nu a fost salvată în galeria telefonului.',
-      tags: ['Leziuni', 'Foto Izolată', 'Probă Juridică'],
-      fileSize: '3.1 MB',
-      mediaUrl: 'https://images.unsplash.com/photo-1584467735815-f778f274e296?auto=format&fit=crop&w=600&q=80',
+      date: evidenceDate(),
+      timestamp: now,
+      description: 'Fotografie realizată cu camera din SCUT. Nu a fost salvată în galeria telefonului.',
+      tags: ['Foto Izolată', 'Probă Juridică'],
+      fileSize: formatBytes(blob.size),
+      mimeType: blob.type,
+      mediaUrl: URL.createObjectURL(blob),
+      source: 'direct_camera',
       sha256Hash: '',
-      location: 'București (44.4378, 26.0946)',
       isEncrypted: false
     };
 
     setActiveModal(null);
-    startEncryptionProcess(newItem);
+    startEncryptionProcess(newItem, await blob.arrayBuffer());
   };
 
   const handleSaveNote = (e: React.FormEvent) => {
@@ -201,6 +277,8 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
       fileSize: uploadedFileSize || '1.8 MB',
       sha256Hash: '',
       mimeType: uploadedFile?.type || undefined,
+      mediaUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : undefined,
+      source: uploadedFile ? 'uploaded_file' : undefined,
       isEncrypted: false
     };
 
@@ -489,11 +567,15 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
               </button>
             </div>
 
-            {selectedEvidence.mediaUrl && (
+            {selectedEvidence.mediaUrl && selectedEvidence.category === 'audio' && (
+              <audio controls src={selectedEvidence.mediaUrl} className="w-full" />
+            )}
+
+            {selectedEvidence.mediaUrl && (selectedEvidence.category === 'document' ? selectedEvidence.mimeType?.startsWith('image/') : selectedEvidence.category !== 'audio') && (
               <div className="w-full h-40 bg-stone-900 rounded-2xl overflow-hidden relative">
-                <img 
-                  src={selectedEvidence.mediaUrl} 
-                  alt="Probă" 
+                <img
+                  src={selectedEvidence.mediaUrl}
+                  alt="Probă"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
@@ -527,7 +609,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                 {selectedEvidence.sha256Hash}
               </div>
               <div className="text-[9px] text-emerald-400 pt-0.5 flex items-center justify-between">
-                <span>✓ Integritate verificată conform Legii 217/2003</span>
+                <span>✓ Amprentă SHA-256 calculată pe conținutul probei</span>
                 <span>Tag: GMAC 128b</span>
               </div>
             </div>
@@ -537,12 +619,13 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
               onClick={() => {
                 const target = selectedEvidence;
                 setSelectedEvidence(null);
-                startEncryptionProcess(target);
+                setPendingEncryptionItem(target);
+                setIsEncryptionModalOpen(true);
               }}
               className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-teal-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
               <Zap className="w-3.5 h-3.5 text-teal-400" />
-              <span>Inspectează Criptarea AES-256 (Simulator)</span>
+              <span>Inspectează Criptarea AES-256</span>
             </button>
 
             {/* Export Entire Dossier to Password-Protected ZIP for Lawyer */}
@@ -567,7 +650,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
         </div>
       )}
 
-      {/* Modal: Camera Simulator */}
+      {/* Modal: Secure Camera */}
       {activeModal === 'camera' && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-stone-950 text-white rounded-3xl p-4 max-w-xs w-full shadow-2xl border border-stone-800 space-y-3">
@@ -582,20 +665,36 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
             </div>
 
             <div className="w-full h-48 bg-stone-900 rounded-2xl flex flex-col items-center justify-center relative border border-stone-800 overflow-hidden">
-              <div className="w-20 h-20 rounded-full border-2 border-dashed border-stone-600 flex items-center justify-center text-stone-500">
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                onLoadedMetadata={() => setIsCameraReady(true)}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {!isCameraReady && !captureError && (
                 <Camera className="w-8 h-8 text-stone-500 animate-pulse" />
-              </div>
-              <div className="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[9px] font-mono text-emerald-400">
-                ● LIVE ISO-WATERMARK
-              </div>
+              )}
+              {captureError && (
+                <div className="relative z-10 mx-3 text-center text-[11px] text-rose-300 flex flex-col items-center gap-1">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>{captureError}</span>
+                </div>
+              )}
+              {isCameraReady && (
+                <div className="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[9px] font-mono text-emerald-400">
+                  ● LIVE
+                </div>
+              )}
               <div className="absolute bottom-2 inset-x-2 text-center text-[10px] text-stone-400 bg-black/60 py-1 rounded">
                 Fotografia va fi încuiată direct în seiful AES-256.
               </div>
             </div>
 
             <button
-              onClick={handleSavePhotoSimulation}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-2"
+              onClick={handleCapturePhoto}
+              disabled={!isCameraReady}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-stone-950 font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-2"
             >
               <Lock className="w-4 h-4" />
               <span>📸 Capturează & Criptează Probă</span>
@@ -604,7 +703,7 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
         </div>
       )}
 
-      {/* Modal: Audio Recorder Simulator */}
+      {/* Modal: Audio Recorder */}
       {activeModal === 'audio' && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-stone-950 text-white rounded-3xl p-4 max-w-xs w-full shadow-2xl border border-stone-800 space-y-3">
@@ -636,11 +735,18 @@ export const EvidenceJournalScreen: React.FC<EvidenceJournalScreenProps> = ({
                   <span className="text-[10px] text-stone-400">Înregistrare activă în curs...</span>
                 </>
               ) : (
-                <>
-                  <Mic className="w-8 h-8 text-stone-600 mb-1" />
-                  <span className="text-xs text-stone-300 font-medium">Apasă pentru a începe înregistrarea</span>
-                  <span className="text-[10px] text-stone-500">Audio criptat AES-256 în fundal</span>
-                </>
+                captureError ? (
+                  <div className="text-[11px] text-rose-300 flex flex-col items-center gap-1">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>{captureError}</span>
+                  </div>
+                ) : (
+                  <>
+                    <Mic className="w-8 h-8 text-stone-600 mb-1" />
+                    <span className="text-xs text-stone-300 font-medium">Apasă pentru a începe înregistrarea</span>
+                    <span className="text-[10px] text-stone-500">Audio criptat AES-256 la salvare</span>
+                  </>
+                )
               )}
             </div>
 

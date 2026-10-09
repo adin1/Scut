@@ -23,7 +23,8 @@ import {
   DEFAULT_BIOMETRIC_CONFIG,
   DEFAULT_EMERGENCY_SMS_CONFIG
 } from './data/mockData';
-import { sealEvidence } from './utils/security';
+import { sealEvidence, formatTime } from './utils/security';
+import { formatBytes, recordAudioFor } from './utils/mediaCapture';
 import { useVoiceGuardian } from './hooks/useVoiceGuardian';
 import { PhoneFrame } from './components/PhoneFrame';
 import { HomeScreen } from './components/HomeScreen';
@@ -47,6 +48,8 @@ import { ArchitectureDocsModal } from './components/ArchitectureDocsModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { VoiceTriggerModal } from './components/VoiceTriggerModal';
 import { BiometricSettingsModal } from './components/BiometricSettingsModal';
+
+const SOS_RECORDING_MS = 60_000;
 
 export default function App() {
   // App navigation state
@@ -95,24 +98,31 @@ export default function App() {
     };
     setVoiceEvents(prev => [newEvent, ...prev]);
 
-    // 2. Automatically record sealed tamper-proof audio evidence in vault
+    // 2. Record real ambient audio, then seal it into the vault. If the microphone
+    //    is unavailable no evidence is created, rather than an empty placeholder.
     if (voiceConfig.recordAudioOnTrigger) {
-      const newAudioEvidence: EvidenceItem = {
-        id: evidenceId,
-        title: `Înregistrare Audio SOS Declanșată Vocal [„${keyword}”]`,
-        date: new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }),
-        timestamp: eventTimestamp,
-        category: 'audio',
-        fileSize: '1.4 MB',
-        duration: '01:00',
-        location: 'Str. Victoriei, Sector 1, București',
-        sha256Hash: '',
-        description: `Înregistrare ambientală inițiată automat prin detecție vocală („${keyword}”) în timp ce telefonul rula modul: ${currentMode}.`,
-        tags: ['SOS Vocal', 'Urgență 112', 'Înregistrare Automată'],
-        isEncrypted: false
-      };
-      const recordContent = JSON.stringify([evidenceId, 'audio', eventTimestamp, newAudioEvidence.title, newAudioEvidence.description, keyword]);
-      sealEvidence(newAudioEvidence, recordContent).then(sealed => setEvidenceList(prev => [sealed, ...prev]));
+      recordAudioFor(SOS_RECORDING_MS)
+        .then(async blob => {
+          const newAudioEvidence: EvidenceItem = {
+            id: evidenceId,
+            title: `Înregistrare Audio SOS Declanșată Vocal [„${keyword}”]`,
+            date: new Date(eventTimestamp).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }),
+            timestamp: eventTimestamp,
+            category: 'audio',
+            fileSize: formatBytes(blob.size),
+            duration: formatTime(SOS_RECORDING_MS / 1000),
+            mimeType: blob.type,
+            mediaUrl: URL.createObjectURL(blob),
+            source: 'direct_microphone',
+            sha256Hash: '',
+            description: `Înregistrare ambientală inițiată automat prin detecție vocală („${keyword}”) în timp ce telefonul rula modul: ${currentMode}.`,
+            tags: ['SOS Vocal', 'Urgență 112', 'Înregistrare Automată'],
+            isEncrypted: false
+          };
+          const sealed = await sealEvidence(newAudioEvidence, await blob.arrayBuffer());
+          setEvidenceList(prev => [sealed, ...prev]);
+        })
+        .catch(err => console.error('Înregistrarea SOS nu a putut porni:', err));
     }
 
     // 3. Dispatch action depending on silent mode

@@ -20,7 +20,8 @@ import {
   RefreshCw,
   Share2
 } from 'lucide-react';
-import { BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
+import { BlobReader, BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
+import { extensionForMime } from '../utils/mediaCapture';
 import { EvidenceItem } from '../types/scut';
 
 interface ZipExportModalProps {
@@ -205,6 +206,21 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
         }
       });
 
+      // Captured media and uploaded files go in as the original bytes,
+      // so the recipient can recompute each SHA-256 listed in the index.
+      const mediaFolders: Partial<Record<EvidenceItem['category'], [string, string]>> = {
+        audio: ['probe_audio_ambientale', 'AUDIO'],
+        photo: ['probe_foto_leziuni_daune', 'FOTO'],
+        document: ['documente_medicale_inml', 'DOC']
+      };
+      const mediaFiles: Array<[string, Blob]> = [];
+      for (const [i, item] of evidenceList.entries()) {
+        const target = mediaFolders[item.category];
+        if (!target || !item.mediaUrl?.startsWith('blob:')) continue;
+        const blob = await (await fetch(item.mediaUrl)).blob();
+        mediaFiles.push([`${target[0]}/${target[1]}_${i + 1}_${item.id}_ORIGINAL.${extensionForMime(blob.type)}`, blob]);
+      }
+
       await new Promise(r => setTimeout(r, 400));
       setExportProgress(85);
       setExportStepText('4/5: Criptare arhivă ZIP cu AES-256...');
@@ -213,6 +229,9 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
       const zipWriter = new ZipWriter(new BlobWriter('application/zip'), { password, encryptionStrength: 3 });
       for (const [entryPath, entryContent] of files) {
         await zipWriter.add(entryPath, new TextReader(entryContent));
+      }
+      for (const [entryPath, blob] of mediaFiles) {
+        await zipWriter.add(entryPath, new BlobReader(blob));
       }
       const zipBlob = await zipWriter.close();
 
